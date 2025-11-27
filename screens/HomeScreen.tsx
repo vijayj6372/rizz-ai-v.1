@@ -1,52 +1,172 @@
 import React from "react";
+import { View, StyleSheet, Pressable, Image, Platform } from "react-native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Card } from "@/components/Card";
-import { ScreenFlatList } from "@/components/ScreenFlatList";
-import Spacer from "@/components/Spacer";
-import { Spacing } from "@/constants/theme";
-
-type HomeStackParamList = {
-  Home: undefined;
-  Detail: undefined;
-};
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { Feather } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  WithSpringConfig,
+} from "react-native-reanimated";
+import { Text } from "react-native";
+import { RootStackParamList } from "@/navigation/RootStackNavigator";
+import { AppColors, Spacing, BorderRadius } from "@/constants/theme";
 
 type HomeScreenProps = {
-  navigation: NativeStackNavigationProp<HomeStackParamList, "Home">;
+  navigation: NativeStackNavigationProp<RootStackParamList, "Home">;
 };
 
-interface CardData {
-  id: string;
-  elevation: number;
+const springConfig: WithSpringConfig = {
+  damping: 15,
+  mass: 0.3,
+  stiffness: 150,
+  overshootClamping: true,
+};
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+interface ActionCardProps {
+  icon: keyof typeof Feather.glyphMap;
+  title: string;
+  subtitle?: string;
+  onPress: () => void;
 }
 
-const CARD_DATA: CardData[] = [
-  { id: "1", elevation: 1 },
-  { id: "2", elevation: 2 },
-  { id: "3", elevation: 3 },
-  { id: "4", elevation: 1 },
-  { id: "5", elevation: 2 },
-  { id: "6", elevation: 3 },
-  { id: "7", elevation: 1 },
-  { id: "8", elevation: 2 },
-  { id: "9", elevation: 3 },
-];
+function ActionCard({ icon, title, subtitle, onPress }: ActionCardProps) {
+  const scale = useSharedValue(1);
 
-export default function HomeScreen({ navigation }: HomeScreenProps) {
-  const renderItem = ({ item }: { item: CardData }) => (
-    <>
-      <Card
-        elevation={item.elevation}
-        onPress={() => navigation.navigate("Detail")}
-      />
-      <Spacer height={Spacing.lg} />
-    </>
-  );
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, springConfig);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, springConfig);
+  };
 
   return (
-    <ScreenFlatList
-      data={CARD_DATA}
-      renderItem={renderItem}
-      keyExtractor={(item) => item.id}
-    />
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[styles.actionCard, animatedStyle]}
+    >
+      <Feather name={icon} size={48} color={AppColors.white} />
+      <Text style={styles.actionCardTitle}>{title}</Text>
+      {subtitle ? <Text style={styles.actionCardSubtitle}>{subtitle}</Text> : null}
+    </AnimatedPressable>
   );
 }
+
+export default function HomeScreen({ navigation }: HomeScreenProps) {
+  const insets = useSafeAreaInsets();
+
+  const handleUploadScreenshot = async () => {
+    navigation.navigate("PickupLine", { fromScreenshot: true });
+  };
+
+  const handleGetPickupLine = () => {
+    navigation.navigate("PickupLine", { fromScreenshot: false });
+  };
+
+  return (
+    <LinearGradient
+      colors={[AppColors.background.gradientTop, AppColors.background.gradientBottom]}
+      style={styles.container}
+    >
+      <View style={[styles.content, { paddingTop: insets.top + Spacing["3xl"], paddingBottom: insets.bottom + Spacing.xl }]}>
+        <View style={styles.header}>
+          <Image
+            source={require("../assets/images/icon.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.appTitle}>Rizz AI</Text>
+        </View>
+
+        <View style={styles.cardsContainer}>
+          <ActionCard
+            icon="maximize"
+            title="Upload Screenshot"
+            subtitle="of a Convo"
+            onPress={handleUploadScreenshot}
+          />
+          
+          <ActionCard
+            icon="message-circle"
+            title="Give me a pickup"
+            subtitle="line"
+            onPress={handleGetPickupLine}
+          />
+        </View>
+      </View>
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: Spacing.xl,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: Spacing["3xl"],
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    marginBottom: Spacing.md,
+    borderRadius: 16,
+  },
+  appTitle: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: AppColors.primary,
+    textShadowColor: "rgba(255, 255, 255, 0.9)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  cardsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    gap: Spacing["2xl"],
+    paddingBottom: Spacing["5xl"],
+  },
+  actionCard: {
+    backgroundColor: AppColors.primary,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing["4xl"],
+    paddingHorizontal: Spacing.xl,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  actionCardTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: AppColors.white,
+    marginTop: Spacing.lg,
+    textAlign: "center",
+  },
+  actionCardSubtitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: AppColors.white,
+    textAlign: "center",
+    opacity: 0.9,
+  },
+});
