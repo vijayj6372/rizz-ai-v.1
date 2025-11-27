@@ -102,8 +102,8 @@ interface ChiliSliderProps {
 }
 
 function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
-  const sliderWidth = 280;
-  const thumbSize = 60;
+  const sliderWidth = 300;
+  const thumbSize = 64;
   const sliderTrackWidth = sliderWidth - thumbSize;
   
   const translateX = useSharedValue(value * sliderTrackWidth);
@@ -122,7 +122,7 @@ function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
 
   const pan = Gesture.Pan()
     .onUpdate((event) => {
-      const newX = Math.max(0, Math.min(event.x - thumbSize / 2, sliderTrackWidth));
+      const newX = Math.max(0, Math.min(event.x - 15 - thumbSize / 2, sliderTrackWidth));
       translateX.value = newX;
       const newValue = newX / sliderTrackWidth;
       runOnJS(onValueChange)(newValue);
@@ -375,35 +375,36 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   sliderContainer: {
-    width: 280,
-    height: 60,
+    width: 300,
+    height: 70,
     justifyContent: "center",
     position: "relative",
+    paddingHorizontal: 15,
   },
   sliderTrack: {
-    height: 14,
-    borderRadius: 7,
+    height: 16,
+    borderRadius: 12,
     width: "100%",
   },
   sliderThumb: {
     position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: AppColors.white,
     justifyContent: "center",
     alignItems: "center",
-    top: -23,
+    top: -24,
     left: 0,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 8,
   },
   chiliIcon: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
   },
   gimmeButton: {
     backgroundColor: AppColors.primary,
