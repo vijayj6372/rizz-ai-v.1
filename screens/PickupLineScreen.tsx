@@ -101,8 +101,9 @@ interface ChiliSliderProps {
 }
 
 function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
-  const sliderWidth = 260;
-  const thumbSize = 56;
+  const sliderWidth = 280;
+  const thumbSize = 60;
+  const offset = value * (sliderWidth - thumbSize);
 
   return (
     <View style={styles.sliderContainer}>
@@ -112,10 +113,10 @@ function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
         end={{ x: 1, y: 0 }}
         style={styles.sliderTrack}
       />
-      <View
+      <Animated.View
         style={[
           styles.sliderThumb,
-          { left: value * (sliderWidth - thumbSize) },
+          { left: offset },
         ]}
       >
         <Image
@@ -123,7 +124,7 @@ function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
           style={styles.chiliIcon}
           resizeMode="contain"
         />
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -256,11 +257,7 @@ export default function PickupLineScreen({ navigation, route }: Props) {
           style={styles.hintContainer}
         >
           <View style={styles.hintRow}>
-            <Image
-              source={require("../assets/images/lightbulb.png")}
-              style={styles.hintIcon}
-              resizeMode="contain"
-            />
+            <Text style={styles.lightbulbEmoji}>💡</Text>
             <Text style={styles.hintText}>Double tap any line to copy</Text>
           </View>
         </Animated.View>
@@ -335,12 +332,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Spacing.sm,
   },
-  hintIcon: {
-    width: 20,
-    height: 20,
+  lightbulbEmoji: {
+    fontSize: 24,
   },
   hintText: {
-    fontSize: 15,
+    fontSize: 16,
     color: "#5A7A8A",
     fontWeight: "500",
   },
@@ -350,34 +346,34 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   sliderContainer: {
-    width: 260,
-    height: 56,
+    width: 280,
+    height: 60,
     justifyContent: "center",
     position: "relative",
   },
   sliderTrack: {
-    height: 12,
-    borderRadius: 6,
+    height: 14,
+    borderRadius: 7,
     width: "100%",
   },
   sliderThumb: {
     position: "absolute",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: AppColors.white,
     justifyContent: "center",
     alignItems: "center",
-    top: -22,
+    top: -23,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 6,
   },
   chiliIcon: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
   },
   gimmeButton: {
     backgroundColor: AppColors.primary,
