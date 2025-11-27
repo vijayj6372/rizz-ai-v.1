@@ -82,20 +82,8 @@ function MessageBubble({ text, index, onCopy }: MessageBubbleProps) {
       runOnJS(handleCopy)();
     });
 
-  const singleTap = Gesture.Tap()
-    .numberOfTaps(1)
-    .onStart(() => {
-      scale.value = withSequence(
-        withSpring(0.98, springConfig),
-        withSpring(1, springConfig)
-      );
-      runOnJS(handleCopy)();
-    });
-
-  const gesture = Gesture.Exclusive(doubleTap, singleTap);
-
   return (
-    <GestureDetector gesture={gesture}>
+    <GestureDetector gesture={doubleTap}>
       <Animated.View
         entering={FadeInRight.delay(index * 200).springify()}
         style={[styles.messageBubble, animatedStyle]}
@@ -113,8 +101,8 @@ interface ChiliSliderProps {
 }
 
 function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
-  const sliderWidth = 280;
-  const thumbSize = 50;
+  const sliderWidth = 260;
+  const thumbSize = 56;
 
   return (
     <View style={styles.sliderContainer}>
@@ -267,7 +255,14 @@ export default function PickupLineScreen({ navigation, route }: Props) {
           entering={FadeIn.delay(600)}
           style={styles.hintContainer}
         >
-          <Text style={styles.hintText}>Tap to copy pickup line</Text>
+          <View style={styles.hintRow}>
+            <Image
+              source={require("../assets/images/lightbulb.png")}
+              style={styles.hintIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.hintText}>Double tap any line to copy</Text>
+          </View>
         </Animated.View>
 
         <View style={styles.bottomSection}>
@@ -333,11 +328,20 @@ const styles = StyleSheet.create({
   },
   hintContainer: {
     alignItems: "center",
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
+  },
+  hintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  hintIcon: {
+    width: 20,
+    height: 20,
   },
   hintText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 15,
+    color: "#5A7A8A",
     fontWeight: "500",
   },
   bottomSection: {
@@ -346,40 +350,48 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   sliderContainer: {
-    width: 280,
-    height: 50,
+    width: 260,
+    height: 56,
     justifyContent: "center",
     position: "relative",
   },
   sliderTrack: {
-    height: 8,
-    borderRadius: 4,
+    height: 12,
+    borderRadius: 6,
     width: "100%",
   },
   sliderThumb: {
     position: "absolute",
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: AppColors.white,
     justifyContent: "center",
     alignItems: "center",
-    top: -21,
+    top: -22,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   chiliIcon: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
   },
   gimmeButton: {
     backgroundColor: AppColors.primary,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing["4xl"],
+    borderRadius: 32,
+    paddingVertical: Spacing.lg + 4,
+    paddingHorizontal: Spacing["4xl"] + 24,
+    width: "100%",
+    alignItems: "center",
   },
   gimmeButtonText: {
     color: AppColors.white,
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 22,
+    fontWeight: "600",
+    fontStyle: "italic",
   },
   modalOverlay: {
     flex: 1,
