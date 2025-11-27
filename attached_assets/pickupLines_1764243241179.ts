@@ -868,27 +868,14 @@ export const boldLines = [
 
 export type PickupLineCategory = 'flirty' | 'poetic' | 'bold';
 
-export const flirtyPickupLines = flirtyLines;
-export const poeticPickupLines = poeticLines;
-export const boldPickupLines = boldLines;
+export const getRandomPickupLines = (): { line: string; category: PickupLineCategory }[] => {
+  const flirty = flirtyLines[Math.floor(Math.random() * flirtyLines.length)];
+  const poetic = poeticLines[Math.floor(Math.random() * poeticLines.length)];
+  const bold = boldLines[Math.floor(Math.random() * boldLines.length)];
 
-export type SpiceLevel = "mild" | "medium" | "spicy";
-
-export function getRandomPickupLines(spiceLevel?: SpiceLevel): string[] {
-  const randomFlirty = flirtyPickupLines[Math.floor(Math.random() * flirtyPickupLines.length)];
-  const randomPoetic = poeticPickupLines[Math.floor(Math.random() * poeticPickupLines.length)];
-  const randomBold = boldPickupLines[Math.floor(Math.random() * boldPickupLines.length)];
-  
-  return [randomFlirty, randomPoetic, randomBold];
-}
-
-export function getPickupLinesByCategory(category: "flirty" | "poetic" | "bold"): string[] {
-  switch (category) {
-    case "flirty":
-      return flirtyPickupLines;
-    case "poetic":
-      return poeticPickupLines;
-    case "bold":
-      return boldPickupLines;
-  }
-}
+  return [
+    { line: flirty, category: 'flirty' },
+    { line: poetic, category: 'poetic' },
+    { line: bold, category: 'bold' },
+  ];
+};
