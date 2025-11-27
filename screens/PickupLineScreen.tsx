@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Text,
 } from "react-native";
-import Slider from "@react-native-community/slider";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -27,7 +26,10 @@ import Animated, {
   FadeIn,
   FadeInRight,
   WithSpringConfig,
+  runOnJS,
+  useAnimatedReaction,
 } from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { AppColors, Spacing, BorderRadius } from "@/constants/theme";
 import { getRandomPickupLines } from "@/data/pickupLines";
@@ -97,52 +99,58 @@ function MessageBubble({ text, index, onCopy }: MessageBubbleProps) {
 interface ChiliSliderProps {
   value: number;
   onValueChange: (value: number) => void;
-  min?: number;
-  max?: number;
 }
 
-function ChiliSlider({
-  value,
-  onValueChange,
-  min = 0,
-  max = 100,
-}: ChiliSliderProps) {
+function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
+  const sliderWidth = 280;
+  const thumbSize = 64;
+  const sliderTrackWidth = sliderWidth - thumbSize;
+  
+  const translateX = useSharedValue(value * sliderTrackWidth);
+
+  useAnimatedReaction(
+    () => value,
+    (newValue) => {
+      translateX.value = withSpring(newValue * sliderTrackWidth, {
+        damping: 10,
+        mass: 1,
+        stiffness: 100,
+      });
+    },
+    [value]
+  );
+
+  const pan = Gesture.Pan()
+    .onUpdate((event) => {
+      const newX = Math.max(0, Math.min(event.x - thumbSize / 2, sliderTrackWidth));
+      translateX.value = newX;
+      const newValue = newX / sliderTrackWidth;
+      runOnJS(onValueChange)(newValue);
+    });
+
+  const animatedThumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
   return (
-    <View style={styles.sliderContainer}>
-      {/* Gradient Track Background */}
-      <LinearGradient
-        colors={["#FB923C", "#F97316", "#EF4444"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.trackBackground}
-      />
-
-      {/* Slider */}
-      <Slider
-        style={styles.slider}
-        value={value}
-        onValueChange={onValueChange}
-        minimumValue={min}
-        maximumValue={max}
-        step={1}
-        minimumTrackTintColor="transparent"
-        maximumTrackTintColor="transparent"
-        thumbTintColor="transparent"
-      />
-
-      {/* Custom Chili Thumb */}
-      <View
-        style={[
-          styles.thumbContainer,
-          { left: `${(value / max) * 100}%` },
-        ]}
-        pointerEvents="none"
-      >
-        <View style={styles.thumb}>
+    <GestureDetector gesture={pan}>
+      <View style={styles.sliderContainer}>
+        <LinearGradient
+          colors={["#FB923C", "#F97316", "#EF4444"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.sliderTrack}
+        />
+        <Animated.View
+          style={[
+            styles.sliderThumb,
+            animatedThumbStyle,
+          ]}
+        >
           <Text style={styles.chiliEmoji}>🌶️</Text>
-        </View>
+        </Animated.View>
       </View>
-    </View>
+    </GestureDetector>
   );
 }
 
@@ -363,38 +371,26 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   sliderContainer: {
+    width: 280,
     height: 60,
     justifyContent: "center",
     position: "relative",
   },
-  trackBackground: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    height: 12,
-    borderRadius: 6,
-    top: "50%",
-    marginTop: -6,
-  },
-  slider: {
+  sliderTrack: {
+    height: 14,
+    borderRadius: 7,
     width: "100%",
-    height: 60,
-    zIndex: 2,
   },
-  thumbContainer: {
+  sliderThumb: {
     position: "absolute",
-    top: "50%",
-    marginTop: -32,
-    marginLeft: -32,
-    zIndex: 1,
-  },
-  thumb: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "white",
+    backgroundColor: AppColors.white,
     justifyContent: "center",
     alignItems: "center",
+    top: -25,
+    left: 0,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -402,7 +398,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   chiliEmoji: {
-    fontSize: 32,
+    fontSize: 36,
   },
   gimmeButton: {
     backgroundColor: AppColors.primary,
