@@ -34,6 +34,7 @@ import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { AppColors, Spacing, BorderRadius } from "@/constants/theme";
 import { getRandomPickupLines } from "@/data/pickupLines";
 import CopiedToast from "@/components/CopiedToast";
+import { playButtonSound } from "@/utils/soundUtils";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PickupLine">;
 
@@ -236,6 +237,7 @@ export default function PickupLineScreen({ navigation, route }: Props) {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
+    playButtonSound();
     generateNewLines();
   };
 

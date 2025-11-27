@@ -15,6 +15,7 @@ import Animated, {
 import { Text } from "react-native";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { AppColors, Spacing, BorderRadius } from "@/constants/theme";
+import { playButtonSound } from "@/utils/soundUtils";
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, "Home">;
@@ -59,6 +60,7 @@ function ActionCard({ icon, title, subtitle, onPress }: ActionCardProps) {
 
   const handlePress = () => {
     triggerHaptic();
+    playButtonSound();
     onPress();
   };
 
