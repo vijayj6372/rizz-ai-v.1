@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 let sound: Audio.Sound | null = null;
 let isLoading = false;
 
-const bubblePopSound = require('@/assets/bubble-pop.mp3');
+const buttonClickSound = require('@/assets/button-click.mp3');
 
 export async function playButtonSound() {
   if (Platform.OS === 'web') return;
@@ -14,7 +14,7 @@ export async function playButtonSound() {
     if (!sound) {
       isLoading = true;
       sound = new Audio.Sound();
-      await sound.loadAsync(bubblePopSound);
+      await sound.loadAsync(buttonClickSound);
       isLoading = false;
     }
 
