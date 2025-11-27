@@ -26,6 +26,7 @@ import Animated, {
   FadeInRight,
   WithSpringConfig,
   runOnJS,
+  useAnimatedReaction,
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Text } from "react-native";
@@ -103,29 +104,57 @@ interface ChiliSliderProps {
 function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
   const sliderWidth = 280;
   const thumbSize = 60;
-  const offset = value * (sliderWidth - thumbSize);
+  const sliderTrackWidth = sliderWidth - thumbSize;
+  
+  const translateX = useSharedValue(value * sliderTrackWidth);
+
+  useAnimatedReaction(
+    () => value,
+    (newValue) => {
+      translateX.value = withSpring(newValue * sliderTrackWidth, {
+        damping: 10,
+        mass: 1,
+        stiffness: 100,
+      });
+    },
+    [value]
+  );
+
+  const pan = Gesture.Pan()
+    .onUpdate((event) => {
+      const newX = Math.max(0, Math.min(event.x - thumbSize / 2, sliderTrackWidth));
+      translateX.value = newX;
+      const newValue = newX / sliderTrackWidth;
+      runOnJS(onValueChange)(newValue);
+    });
+
+  const animatedThumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   return (
-    <View style={styles.sliderContainer}>
-      <LinearGradient
-        colors={[AppColors.slider.left, AppColors.slider.right]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.sliderTrack}
-      />
-      <Animated.View
-        style={[
-          styles.sliderThumb,
-          { left: offset },
-        ]}
-      >
-        <Image
-          source={require("../assets/images/chili-pepper.png")}
-          style={styles.chiliIcon}
-          resizeMode="contain"
+    <GestureDetector gesture={pan}>
+      <View style={styles.sliderContainer}>
+        <LinearGradient
+          colors={[AppColors.slider.left, AppColors.slider.right]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.sliderTrack}
         />
-      </Animated.View>
-    </View>
+        <Animated.View
+          style={[
+            styles.sliderThumb,
+            animatedThumbStyle,
+          ]}
+        >
+          <Image
+            source={require("../assets/images/chili-pepper.png")}
+            style={styles.chiliIcon}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      </View>
+    </GestureDetector>
   );
 }
 
@@ -365,6 +394,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     top: -23,
+    left: 0,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
