@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.white,
     justifyContent: "center",
     alignItems: "center",
-    top: -25,
+    top: -2,
     left: 0,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
