@@ -33,6 +33,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { AppColors, Spacing, BorderRadius } from "@/constants/theme";
 import { getRandomPickupLines } from "@/data/pickupLines";
+import CopiedToast from "@/components/CopiedToast";
 
 type Props = NativeStackScreenProps<RootStackParamList, "PickupLine">;
 
@@ -162,6 +163,7 @@ export default function PickupLineScreen({ navigation, route }: Props) {
   const [sliderValue, setSliderValue] = useState(0.5);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasLoadedLines, setHasLoadedLines] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
 
   const generateNewLines = useCallback(() => {
     const newLines = getRandomPickupLines();
@@ -224,9 +226,7 @@ export default function PickupLineScreen({ navigation, route }: Props) {
     try {
       await Clipboard.setStringAsync(text);
       triggerCopyHaptic();
-      if (Platform.OS === "web") {
-        alert("Copied to clipboard!");
-      }
+      setShowCopiedToast(true);
     } catch (error) {
       console.log("Failed to copy:", error);
     }
@@ -256,6 +256,8 @@ export default function PickupLineScreen({ navigation, route }: Props) {
           </View>
         </View>
       </Modal>
+
+      <CopiedToast visible={showCopiedToast} onHide={() => setShowCopiedToast(false)} />
 
       <View
         style={[
