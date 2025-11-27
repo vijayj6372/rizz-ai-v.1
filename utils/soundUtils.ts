@@ -1,52 +1,50 @@
-import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-audio';
 import { Platform } from 'react-native';
 
-let soundObject: Audio.Sound | null = null;
+let sound: Audio.Sound | null = null;
+let isInitialized = false;
 
-async function initializeSound() {
-  if (Platform.OS === 'web' || soundObject) return;
-  
+const initSound = async () => {
+  if (isInitialized || Platform.OS === 'web') return;
+
   try {
-    soundObject = new Audio.Sound();
+    isInitialized = true;
+    sound = new Audio.Sound();
     const source = require('@/assets/bubble.mp3');
-    await soundObject.loadAsync(source);
+    await sound.loadAsync(source);
   } catch (error) {
     console.log('Sound init error:', error);
-    soundObject = null;
+    isInitialized = false;
   }
-}
+};
 
-export async function playButtonSound() {
-  // Initialize sound if not already done
-  if (!soundObject && Platform.OS !== 'web') {
-    await initializeSound();
+// Initialize immediately
+initSound();
+
+export const playButtonSound = async () => {
+  if (Platform.OS === 'web') return;
+
+  // Initialize if not done yet
+  if (!sound) {
+    await initSound();
   }
 
-  // Always trigger haptic feedback
-  if (Platform.OS !== 'web') {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    } catch (e) {
-      console.log('Haptic error:', e);
+  try {
+    if (!sound) return;
+
+    const status = await sound.getStatusAsync();
+
+    if (!status.isLoaded) {
+      await sound.loadAsync(require('@/assets/bubble.mp3'));
     }
-  }
 
-  // Try to play sound if available
-  if (soundObject && Platform.OS !== 'web') {
-    try {
-      const status = await soundObject.getStatusAsync();
-      if (status.isLoaded) {
-        // Stop if already playing and restart
-        if (status.isPlaying) {
-          await soundObject.stopAsync();
-          await soundObject.playFromPositionAsync(0);
-        } else {
-          await soundObject.playAsync();
-        }
-      }
-    } catch (error) {
-      console.log('Play sound error:', error);
+    if (status.isPlaying) {
+      await sound.stopAsync();
+      await sound.playAsync();
+    } else {
+      await sound.playAsync();
     }
+  } catch (error) {
+    console.log('Error playing sound:', error);
   }
-}
+};

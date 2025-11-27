@@ -58,9 +58,9 @@ function ActionCard({ icon, title, subtitle, onPress }: ActionCardProps) {
     scale.value = withSpring(1, springConfig);
   };
 
-  const handlePress = () => {
+  const handlePress = async () => {
     triggerHaptic();
-    playButtonSound();
+    await playButtonSound();
     onPress();
   };
 

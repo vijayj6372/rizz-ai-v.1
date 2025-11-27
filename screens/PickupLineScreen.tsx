@@ -233,11 +233,11 @@ export default function PickupLineScreen({ navigation, route }: Props) {
     }
   }, []);
 
-  const handleGimmeAnother = () => {
+  const handleGimmeAnother = async () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    playButtonSound();
+    await playButtonSound();
     generateNewLines();
   };
 
