@@ -14,6 +14,21 @@ export const flirtyPickupLines = [
   "If beauty were time, you'd be an eternity.",
   "Are you a bank loan? Because you've got my interest.",
   "I'm not a photographer, but I can picture us together.",
+  "Do you have a sunburn, or are you always this hot?",
+  "Is your dad a boxer? Because you're a knockout!",
+  "Are you a dictionary? Because you add meaning to my life.",
+  "If kisses were snowflakes, I'd send you a blizzard.",
+  "Are you a time traveler? Because I see you in my future.",
+  "Do you have a mirror in your pocket? Because I can see myself in your pants.",
+  "Are you a beaver? Because daaaaam.",
+  "Is your name Chapstick? Because you're da balm!",
+  "Are you a cat? Because you're purrfect.",
+  "Did it hurt when you fell from the vending machine? Because you're a snack!",
+  "Are you a library book? Because I'm checking you out.",
+  "Is your name Ariel? Because we mermaid for each other.",
+  "Are you a 45 degree angle? Because you're acute-y.",
+  "Did you just come out of the oven? Because you're hot!",
+  "Are you a wifi signal? Because I'm feeling a connection.",
 ];
 
 export const poeticPickupLines = [
@@ -32,6 +47,21 @@ export const poeticPickupLines = [
   "If I could rearrange the alphabet, I'd put U and I together at the beginning of every love story.",
   "You're the dream I never want to wake up from.",
   "Like the first ray of dawn, you bring hope to my darkest nights.",
+  "Your eyes are like oceans - deep, mysterious, and I could get lost in them forever.",
+  "If beauty were measured in time, you would be an eternity of summer sunsets.",
+  "You're the reason poets stay up late, searching for words that don't exist.",
+  "Like a rare flower blooming in the desert, you're a miracle I never expected.",
+  "Your laughter is the symphony my heart has been waiting to hear.",
+  "If I were to write a novel about love, every page would be about you.",
+  "You're like the moon - even in my darkest moments, you light up my world.",
+  "Like a perfect sunset, you take my breath away every single time.",
+  "Your presence feels like coming home after a lifetime of wandering.",
+  "If souls could dance, mine would waltz eternally with yours.",
+  "You're the kind of beautiful that inspires art galleries and love songs.",
+  "Like Shakespeare's finest sonnets, you leave me speechless and inspired.",
+  "Your beauty is a story that would take a lifetime to tell.",
+  "If I could bottle your essence, I'd have the elixir of happiness.",
+  "You're the verse that completes the rhythm of my heart.",
 ];
 
 export const boldPickupLines = [
@@ -50,12 +80,40 @@ export const boldPickupLines = [
   "You're so hot, you'd make the devil sweat.",
   "I'm not trying to impress you or anything, but I'm Batman.",
   "Do you work at Starbucks? Because I like you a latte.",
+  "Are you my appendix? Because I have a funny feeling in my stomach that makes me want to take you out.",
+  "Do you have a jersey? Because I need your name and number.",
+  "Are you a light switch? Because you really turn me on.",
+  "I'm not a hoarder, but I really want to keep you forever.",
+  "Are you a magician? Because every time I look at you, everyone else disappears.",
+  "I must be a light switch, because you really turn me on.",
+  "Is your name Chapstick? Because you're da bomb.",
+  "Are you a keyboard? Because you're just my type.",
+  "I'm not a genie, but I can make all your wishes come true.",
+  "Are you a parking ticket? Because you've got fine written all over you.",
+  "Do you have a name, or can I call you mine?",
+  "Are you a loan? Because you've got my interest.",
+  "I'm not a weatherman, but you can expect more than a few inches tonight.",
+  "Is your dad a thief? Because he stole the stars and put them in your eyes.",
+  "Are you a candle? Because you light up my life.",
 ];
 
-export function getRandomPickupLines(): string[] {
+export type SpiceLevel = "mild" | "medium" | "spicy";
+
+export function getRandomPickupLines(spiceLevel?: SpiceLevel): string[] {
   const randomFlirty = flirtyPickupLines[Math.floor(Math.random() * flirtyPickupLines.length)];
   const randomPoetic = poeticPickupLines[Math.floor(Math.random() * poeticPickupLines.length)];
   const randomBold = boldPickupLines[Math.floor(Math.random() * boldPickupLines.length)];
   
   return [randomFlirty, randomPoetic, randomBold];
+}
+
+export function getPickupLinesByCategory(category: "flirty" | "poetic" | "bold"): string[] {
+  switch (category) {
+    case "flirty":
+      return flirtyPickupLines;
+    case "poetic":
+      return poeticPickupLines;
+    case "bold":
+      return boldPickupLines;
+  }
 }

@@ -4,12 +4,13 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
+import * as Haptics from "expo-haptics";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   WithSpringConfig,
+  runOnJS,
 } from "react-native-reanimated";
 import { Text } from "react-native";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
@@ -35,6 +36,12 @@ interface ActionCardProps {
   onPress: () => void;
 }
 
+function triggerHaptic() {
+  if (Platform.OS !== "web") {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }
+}
+
 function ActionCard({ icon, title, subtitle, onPress }: ActionCardProps) {
   const scale = useSharedValue(1);
 
@@ -50,9 +57,14 @@ function ActionCard({ icon, title, subtitle, onPress }: ActionCardProps) {
     scale.value = withSpring(1, springConfig);
   };
 
+  const handlePress = () => {
+    triggerHaptic();
+    onPress();
+  };
+
   return (
     <AnimatedPressable
-      onPress={onPress}
+      onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[styles.actionCard, animatedStyle]}
@@ -132,9 +144,6 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: "800",
     color: AppColors.primary,
-    textShadowColor: "rgba(255, 255, 255, 0.9)",
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
   cardsContainer: {
     flex: 1,
@@ -149,11 +158,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
   },
   actionCardTitle: {
     fontSize: 20,

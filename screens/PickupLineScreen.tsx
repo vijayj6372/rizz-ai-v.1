@@ -9,12 +9,12 @@ import {
   Modal,
   ActivityIndicator,
 } from "react-native";
-import { NativeStackNavigationProp, NativeStackScreenProps } from "@react-navigation/native-stack";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { MediaType } from "expo-image-picker";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -22,7 +22,6 @@ import Animated, {
   useSharedValue,
   withSpring,
   withSequence,
-  withTiming,
   FadeIn,
   FadeInRight,
   WithSpringConfig,
@@ -49,9 +48,20 @@ interface MessageBubbleProps {
   onCopy: (text: string) => void;
 }
 
+function triggerCopyHaptic() {
+  if (Platform.OS !== "web") {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+}
+
+function triggerLightHaptic() {
+  if (Platform.OS !== "web") {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
+}
+
 function MessageBubble({ text, index, onCopy }: MessageBubbleProps) {
   const scale = useSharedValue(1);
-  const backgroundColor = useSharedValue(AppColors.messageBubble);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -162,7 +172,7 @@ export default function PickupLineScreen({ navigation, route }: Props) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"] as MediaType[],
         allowsEditing: false,
         quality: 1,
       });
@@ -173,6 +183,9 @@ export default function PickupLineScreen({ navigation, route }: Props) {
           setIsAnalyzing(false);
           generateNewLines();
           setHasLoadedLines(true);
+          if (Platform.OS !== "web") {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
         }, 1500);
       } else {
         generateNewLines();
@@ -196,9 +209,7 @@ export default function PickupLineScreen({ navigation, route }: Props) {
   const handleCopyText = useCallback(async (text: string) => {
     try {
       await Clipboard.setStringAsync(text);
-      if (Platform.OS !== "web") {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
+      triggerCopyHaptic();
       if (Platform.OS === "web") {
         alert("Copied to clipboard!");
       }
@@ -353,11 +364,6 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.white,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
     top: -21,
   },
   chiliIcon: {
@@ -369,11 +375,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing["4xl"],
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
   },
   gimmeButtonText: {
     color: AppColors.white,
@@ -392,11 +393,6 @@ const styles = StyleSheet.create({
     padding: Spacing["3xl"],
     alignItems: "center",
     gap: Spacing.lg,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
   },
   analysisText: {
     fontSize: 16,
