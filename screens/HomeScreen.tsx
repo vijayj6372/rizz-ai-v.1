@@ -106,14 +106,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
         <View style={styles.cardsContainer}>
           <ActionCard
-            icon="maximize"
+            icon="image"
             title="Upload Screenshot"
             subtitle="of a Convo"
             onPress={handleUploadScreenshot}
           />
           
           <ActionCard
-            icon="message-circle"
+            icon="zap"
             title="Give me a pickup"
             subtitle="line"
             onPress={handleGetPickupLine}
