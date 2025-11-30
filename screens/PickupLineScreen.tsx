@@ -215,21 +215,27 @@ export default function PickupLineScreen({ navigation, route }: Props) {
   }, [generateNewLines]);
 
   useEffect(() => {
-    // Set header right button to open image picker
-    navigation.setOptions({
-      headerRight: () => (
-        <Pressable
-          onPress={handleImagePickerFlow}
-          style={({ pressed }) => ({
-            opacity: pressed ? 0.6 : 1,
-            paddingHorizontal: Spacing.lg,
-          })}
-        >
-          <Text style={{ fontSize: 24 }}>➕</Text>
-        </Pressable>
-      ),
-    });
-  }, [handleImagePickerFlow, navigation]);
+    // Only show plus button for upload screenshot flow
+    if (fromScreenshot) {
+      navigation.setOptions({
+        headerRight: () => (
+          <Pressable
+            onPress={handleImagePickerFlow}
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.6 : 1,
+              paddingHorizontal: Spacing.lg,
+            })}
+          >
+            <Text style={{ fontSize: 24 }}>➕</Text>
+          </Pressable>
+        ),
+      });
+    } else {
+      navigation.setOptions({
+        headerRight: () => null,
+      });
+    }
+  }, [handleImagePickerFlow, navigation, fromScreenshot]);
 
   useEffect(() => {
     if (fromScreenshot) {
