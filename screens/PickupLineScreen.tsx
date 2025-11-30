@@ -214,22 +214,6 @@ export default function PickupLineScreen({ navigation, route }: Props) {
     }
   }, [generateNewLines]);
 
-  useEffect(() => {
-    // Set header right button to open image picker
-    navigation.setOptions({
-      headerRight: () => (
-        <Pressable
-          onPress={handleImagePickerFlow}
-          style={({ pressed }) => ({
-            opacity: pressed ? 0.6 : 1,
-            paddingHorizontal: Spacing.lg,
-          })}
-        >
-          <Text style={{ fontSize: 24 }}>➕</Text>
-        </Pressable>
-      ),
-    });
-  }, [handleImagePickerFlow, navigation]);
 
   useEffect(() => {
     if (fromScreenshot) {
