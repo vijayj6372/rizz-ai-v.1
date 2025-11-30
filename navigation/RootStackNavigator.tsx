@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, Platform } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import HomeScreen from "@/screens/HomeScreen";
@@ -18,10 +19,13 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function HeaderRightButton() {
+  const navigation = useNavigation();
+  
   const handlePress = () => {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+    navigation.navigate("PickupLine", { fromScreenshot: true });
   };
 
   return (
