@@ -14,13 +14,20 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 export default function App() {
   useEffect(() => {
     // Initialize audio on app start
-    if (Platform.OS !== 'web') {
-      Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: false,
-      }).catch(() => {});
-    }
+    const initializeAudio = async () => {
+      try {
+        if (Platform.OS !== 'web' && Audio?.setAudioModeAsync) {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            shouldDuckAndroid: false,
+          });
+        }
+      } catch (error) {
+        // Audio initialization failed silently - app still works
+      }
+    };
+    initializeAudio();
   }, []);
 
   return (

@@ -1,7 +1,7 @@
 import { Audio } from 'expo-audio';
 import { Platform } from 'react-native';
 
-let sound: Audio.Sound | null = null;
+let sound: any = null;
 let isInitialized = false;
 
 const initSound = async () => {
@@ -9,42 +9,40 @@ const initSound = async () => {
 
   try {
     isInitialized = true;
-    sound = new Audio.Sound();
-    const source = require('@/assets/bubble.mp3');
-    await sound.loadAsync(source);
+    if (Audio?.Sound) {
+      sound = new Audio.Sound();
+      const source = require('@/assets/bubble.mp3');
+      await sound.loadAsync(source);
+    }
   } catch (error) {
-    console.log('Sound init error:', error);
+    // Sound initialization not available
     isInitialized = false;
+    sound = null;
   }
 };
 
 // Initialize immediately
-initSound();
+initSound().catch(() => {});
 
 export const playButtonSound = async () => {
-  if (Platform.OS === 'web') return;
-
-  // Initialize if not done yet
-  if (!sound) {
-    await initSound();
-  }
+  if (Platform.OS === 'web' || !sound) return;
 
   try {
-    if (!sound) return;
+    if (!sound?.getStatusAsync) return;
 
     const status = await sound.getStatusAsync();
 
-    if (!status.isLoaded) {
+    if (!status?.isLoaded) {
       await sound.loadAsync(require('@/assets/bubble.mp3'));
     }
 
-    if (status.isPlaying) {
+    if (status?.isPlaying) {
       await sound.stopAsync();
       await sound.playAsync();
     } else {
       await sound.playAsync();
     }
   } catch (error) {
-    console.log('Error playing sound:', error);
+    // Audio playback error - silently fail
   }
 };
