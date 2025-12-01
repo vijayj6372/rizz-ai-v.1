@@ -654,9 +654,10 @@ export const boldSexyLines = [
 ];
 
 export function getRandomPickupLines(): string[] {
-  const categories = [flirtyLines, poeticLines, boldSexyLines];
-  const selectedCategory = categories[Math.floor(Math.random() * categories.length)];
+  // Get one random line from EACH category
+  const flirtyLine = flirtyLines[Math.floor(Math.random() * flirtyLines.length)];
+  const poeticLine = poeticLines[Math.floor(Math.random() * poeticLines.length)];
+  const boldSexyLine = boldSexyLines[Math.floor(Math.random() * boldSexyLines.length)];
   
-  const shuffled = [...selectedCategory].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 3);
+  return [flirtyLine, poeticLine, boldSexyLine];
 }
