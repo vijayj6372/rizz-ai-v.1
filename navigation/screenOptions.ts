@@ -19,7 +19,7 @@ export const getCommonScreenOptions = ({
   headerTitleAlign: "center",
   headerTransparent: transparent,
   headerBlurEffect: isDark ? "dark" : "light",
-  headerTintColor: theme.text,
+  headerTintColor: "#E9827B",
   headerStyle: {
     backgroundColor: Platform.select({
       ios: undefined,
