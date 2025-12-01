@@ -14,6 +14,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { LinearGradient } from "expo-linear-gradient";
+import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { MediaType } from "expo-image-picker";
 import * as Clipboard from "expo-clipboard";
@@ -222,11 +223,12 @@ export default function PickupLineScreen({ navigation, route }: Props) {
           <Pressable
             onPress={handleImagePickerFlow}
             style={({ pressed }) => ({
-              opacity: pressed ? 0.6 : 1,
+              opacity: pressed ? 0.7 : 1,
               paddingHorizontal: Spacing.lg,
+              paddingVertical: Spacing.xs,
             })}
           >
-            <Text style={{ fontSize: 24 }}>➕</Text>
+            <Feather name="plus" size={28} color={AppColors.buttonColor} />
           </Pressable>
         ),
       });

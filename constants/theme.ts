@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 
 export const AppColors = {
-  primary: "#E86B6B",
+  primary: "#E9827B",
   primaryLight: "#F08080",
   background: {
     gradientTop: "#C5D8F0",
@@ -15,6 +15,7 @@ export const AppColors = {
   white: "#FFFFFF",
   textDark: "#333333",
   textLight: "#FFFFFF",
+  buttonColor: "#E9827B",
 };
 
 const tintColorLight = AppColors.primary;
