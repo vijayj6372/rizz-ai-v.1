@@ -1,11 +1,11 @@
 import { Platform } from "react-native";
 
 export const AppColors = {
-  primary: "#E9827B",
-  primaryLight: "#F08080",
+  primary: "#F6766E",
+  primaryLight: "#F6766E",
   background: {
-    gradientTop: "#C5D8F0",
-    gradientBottom: "#E8F0F8",
+    gradientTop: "#ABBFF2",
+    gradientBottom: "#BCCFFA",
   },
   messageBubble: "#4A90D9",
   slider: {
@@ -15,7 +15,7 @@ export const AppColors = {
   white: "#FFFFFF",
   textDark: "#333333",
   textLight: "#FFFFFF",
-  buttonColor: "#E9827B",
+  buttonColor: "#F6766E",
 };
 
 const tintColorLight = AppColors.primary;

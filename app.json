@@ -4,7 +4,7 @@
     "slug": "rizz-ai",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/rizz ai - logo.png",
     "scheme": "rizzai",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -17,28 +17,32 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#C5D8F0",
-        "foregroundImage": "./assets/images/icon.png"
+        "backgroundColor": "#1A0A2E",
+        "foregroundImage": "./assets/images/rizz ai - logo.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.rizzai.app",
-      "permissions": ["android.permission.READ_EXTERNAL_STORAGE"]
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/rizz ai - logo.png"
     },
     "plugins": [
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/rizz ai - logo.png",
+          "imageWidth": 280,
           "resizeMode": "contain",
-          "backgroundColor": "#C5D8F0",
+          "backgroundColor": "#1A0A2E",
           "dark": {
-            "backgroundColor": "#1F2123"
+            "backgroundColor": "#1A0A2E"
           }
         }
       ],
@@ -48,10 +52,21 @@
         {
           "photosPermission": "Rizz AI needs access to your photos to analyze conversation screenshots."
         }
-      ]
+      ],
+      "expo-audio",
+      "react-native-google-mobile-ads"
     ],
     "experiments": {
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5e8522e2-3aa5-4b26-82ab-359add348ffb"
+      }
     }
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-9793356380101545~6278569788",
+    "ios_app_id": "ca-app-pub-9793356380101545~6278569788"
   }
 }

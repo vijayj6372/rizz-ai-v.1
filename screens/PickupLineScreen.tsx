@@ -1,22 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
   Pressable,
-  Image,
   Platform,
-  Alert,
-  Modal,
-  ActivityIndicator,
   Text,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import { MediaType } from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -36,8 +29,11 @@ import { AppColors, Spacing, BorderRadius } from "@/constants/theme";
 import { getRandomPickupLines } from "@/data/pickupLines";
 import CopiedToast from "@/components/CopiedToast";
 import { playButtonSound } from "@/utils/soundUtils";
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 
 type Props = NativeStackScreenProps<RootStackParamList, "PickupLine">;
+
+const CARD_PINK = "#F86B6D";
 
 const springConfig: WithSpringConfig = {
   damping: 15,
@@ -46,22 +42,16 @@ const springConfig: WithSpringConfig = {
   overshootClamping: true,
 };
 
-interface MessageBubbleProps {
-  text: string;
-  index: number;
-  onCopy: (text: string) => void;
-}
-
 function triggerCopyHaptic() {
   if (Platform.OS !== "web") {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 }
 
-function triggerLightHaptic() {
-  if (Platform.OS !== "web") {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }
+interface MessageBubbleProps {
+  text: string;
+  index: number;
+  onCopy: (text: string) => void;
 }
 
 function MessageBubble({ text, index, onCopy }: MessageBubbleProps) {
@@ -75,27 +65,28 @@ function MessageBubble({ text, index, onCopy }: MessageBubbleProps) {
     onCopy(text);
   }, [text, onCopy]);
 
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .onStart(() => {
-      scale.value = withSequence(
-        withSpring(0.95, springConfig),
-        withSpring(1.05, springConfig),
-        withSpring(1, springConfig)
-      );
-      runOnJS(handleCopy)();
-    });
+  const handleGestureStart = () => {
+    scale.value = withSequence(
+      withSpring(0.95, springConfig),
+      withSpring(1.05, springConfig),
+      withSpring(1, springConfig)
+    );
+    runOnJS(handleCopy)();
+  };
+
+  const tap = Gesture.Tap().onStart(handleGestureStart);
+  const longPress = Gesture.LongPress().onStart(handleGestureStart);
+  const gestures = Gesture.Race(tap, longPress);
 
   return (
-    <GestureDetector gesture={doubleTap}>
-      <Animated.View
-        entering={FadeInRight.delay(index * 200).springify()}
-        style={[styles.messageBubble, animatedStyle]}
-      >
-        <Text style={styles.messageText}>{text}</Text>
-        <View style={styles.messageTail} />
-      </Animated.View>
-    </GestureDetector>
+    <Animated.View entering={FadeInRight.delay(index * 200).springify()}>
+      <GestureDetector gesture={gestures}>
+        <Animated.View style={[styles.messageBubble, animatedStyle]}>
+          <Text style={styles.messageText}>{text}</Text>
+          <View style={styles.messageTail} />
+        </Animated.View>
+      </GestureDetector>
+    </Animated.View>
   );
 }
 
@@ -106,9 +97,9 @@ interface ChiliSliderProps {
 
 function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
   const sliderWidth = 280;
-  const thumbSize = 64;
+  const thumbSize = 52;
   const sliderTrackWidth = sliderWidth - thumbSize;
-  
+
   const translateX = useSharedValue(value * sliderTrackWidth);
 
   useAnimatedReaction(
@@ -157,14 +148,10 @@ function ChiliSlider({ value, onValueChange }: ChiliSliderProps) {
   );
 }
 
-export default function PickupLineScreen({ navigation, route }: Props) {
-  const { fromScreenshot } = route.params;
+export default function PickupLineScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const [pickupLines, setPickupLines] = useState<string[]>([]);
   const [sliderValue, setSliderValue] = useState(0.5);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [hasLoadedLines, setHasLoadedLines] = useState(false);
   const [showCopiedToast, setShowCopiedToast] = useState(false);
 
   const generateNewLines = useCallback(() => {
@@ -172,85 +159,15 @@ export default function PickupLineScreen({ navigation, route }: Props) {
     setPickupLines(newLines);
   }, []);
 
-  const handleImagePickerFlow = useCallback(async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (!permissionResult.granted) {
-        if (Platform.OS !== "web") {
-          Alert.alert(
-            "Permission Required",
-            "Please allow access to your photo library to upload screenshots.",
-            [{ text: "OK" }]
-          );
-        }
-        generateNewLines();
-        setHasLoadedLines(true);
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"] as MediaType[],
-        allowsEditing: false,
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setIsAnalyzing(true);
-        setTimeout(() => {
-          setIsAnalyzing(false);
-          generateNewLines();
-          setHasLoadedLines(true);
-          if (Platform.OS !== "web") {
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          }
-        }, 1500);
-      } else {
-        generateNewLines();
-        setHasLoadedLines(true);
-      }
-    } catch (error) {
-      generateNewLines();
-      setHasLoadedLines(true);
-    }
-  }, [generateNewLines]);
-
-  useEffect(() => {
-    // Only show plus button for upload screenshot flow
-    if (fromScreenshot) {
-      navigation.setOptions({
-        headerRight: () => (
-          <Pressable
-            onPress={handleImagePickerFlow}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.7 : 1,
-              paddingHorizontal: Spacing.lg,
-              paddingVertical: Spacing.xs,
-            })}
-          >
-            <Feather name="plus" size={28} color={AppColors.buttonColor} />
-          </Pressable>
-        ),
-      });
-    } else {
-      navigation.setOptions({
-        headerRight: () => null,
-      });
-    }
-  }, [handleImagePickerFlow, navigation, fromScreenshot]);
-
-  useEffect(() => {
-    if (fromScreenshot) {
-      handleImagePickerFlow();
-    } else {
-      generateNewLines();
-      setHasLoadedLines(true);
-    }
-  }, [fromScreenshot, handleImagePickerFlow, generateNewLines]);
+  // Generate lines on first load
+  React.useEffect(() => {
+    generateNewLines();
+  }, []);
 
   const handleCopyText = useCallback(async (text: string) => {
     try {
       await Clipboard.setStringAsync(text);
+      await playButtonSound();
       triggerCopyHaptic();
       setShowCopiedToast(true);
     } catch (error) {
@@ -268,35 +185,64 @@ export default function PickupLineScreen({ navigation, route }: Props) {
 
   return (
     <LinearGradient
-      colors={[AppColors.background.gradientTop, AppColors.background.gradientBottom]}
+      colors={["#ABBFF2", "#BCCFFA"]}
       style={styles.container}
     >
-      <Modal
-        visible={isAnalyzing}
-        transparent
-        animationType="fade"
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.analysisModal}>
-            <ActivityIndicator size="large" color={AppColors.primary} />
-            <Text style={styles.analysisText}>Analyzing screenshot...</Text>
-          </View>
-        </View>
-      </Modal>
-
       <CopiedToast visible={showCopiedToast} onHide={() => setShowCopiedToast(false)} />
 
-      <View
-        style={[
-          styles.content,
-          {
-            paddingTop: headerHeight + Spacing.xl,
-            paddingBottom: insets.bottom + Spacing.xl,
-          },
-        ]}
-      >
+      {/* ── Custom Header (back arrow + Rizz AI title, no + button) ── */}
+      <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
+        {/* Back Arrow */}
+        <Pressable
+          style={styles.headerButton}
+          onPress={async () => {
+            await playButtonSound();
+            navigation.goBack();
+          }}
+          hitSlop={12}
+        >
+          <Ionicons name="chevron-back" size={34} color={CARD_PINK} />
+        </Pressable>
+
+        {/* Rizz AI Title */}
+        <View style={styles.headerTitleWrapper}>
+          {/* White outline layers */}
+          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: -3 }, { translateY: 0 }] }]} aria-hidden>
+            Rizz AI
+          </Text>
+          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 3 }, { translateY: 0 }] }]} aria-hidden>
+            Rizz AI
+          </Text>
+          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 0 }, { translateY: -3 }] }]} aria-hidden>
+            Rizz AI
+          </Text>
+          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 0 }, { translateY: 3 }] }]} aria-hidden>
+            Rizz AI
+          </Text>
+          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: -2 }, { translateY: -2 }] }]} aria-hidden>
+            Rizz AI
+          </Text>
+          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 2 }, { translateY: -2 }] }]} aria-hidden>
+            Rizz AI
+          </Text>
+          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: -2 }, { translateY: 2 }] }]} aria-hidden>
+            Rizz AI
+          </Text>
+          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 2 }, { translateY: 2 }] }]} aria-hidden>
+            Rizz AI
+          </Text>
+          {/* Main title */}
+          <Text style={styles.headerTitle}>Rizz AI</Text>
+        </View>
+
+        {/* Empty spacer to balance the back arrow */}
+        <View style={styles.headerButton} />
+      </View>
+
+      {/* ── Content ── */}
+      <View style={styles.content}>
         <View style={styles.messagesContainer}>
-          {hasLoadedLines && pickupLines.map((line, index) => (
+          {pickupLines.map((line, index) => (
             <MessageBubble
               key={`${line}-${index}`}
               text={line}
@@ -306,13 +252,13 @@ export default function PickupLineScreen({ navigation, route }: Props) {
           ))}
         </View>
 
-        <Animated.View 
+        <Animated.View
           entering={FadeIn.delay(600)}
           style={styles.hintContainer}
         >
           <View style={styles.hintRow}>
             <Text style={styles.lightbulbEmoji}>💡</Text>
-            <Text style={styles.hintText}>Double tap any line to copy</Text>
+            <Text style={styles.hintText}>Tap or press any line to copy</Text>
           </View>
         </Animated.View>
 
@@ -329,6 +275,17 @@ export default function PickupLineScreen({ navigation, route }: Props) {
             <Text style={styles.gimmeButtonText}>gimme another</Text>
           </Pressable>
         </View>
+
+        {/* ── Banner Ad ── */}
+        <View style={styles.adContainer}>
+          <BannerAd
+            unitId="ca-app-pub-3940256099942544/9214589741"
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            requestOptions={{
+              requestNonPersonalizedAdsOnly: true,
+            }}
+          />
+        </View>
       </View>
     </LinearGradient>
   );
@@ -338,9 +295,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
+  /* ── Custom Header ── */
+  headerBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitleWrapper: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitleOutline: {
+    position: "absolute",
+    fontSize: 30,
+    fontFamily: "LilitaOne-Regular",
+    color: "#FFFFFF",
+    letterSpacing: 1,
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontFamily: "LilitaOne-Regular",
+    color: CARD_PINK,
+    letterSpacing: 1,
+  },
+
+  /* ── Content ── */
   content: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
   },
   messagesContainer: {
     flex: 1,
@@ -400,65 +395,63 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   sliderContainer: {
-    width: 280,
+    width: "100%",
+    maxWidth: 320,
     height: 60,
     justifyContent: "center",
     position: "relative",
+    paddingHorizontal: 20,
   },
   sliderTrack: {
-    height: 14,
-    borderRadius: 7,
+    height: 16,
+    borderRadius: 8,
     width: "100%",
   },
   sliderThumb: {
     position: "absolute",
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: AppColors.white,
     justifyContent: "center",
     alignItems: "center",
-    top: -2,
-    left: 0,
+    top: 4, // 30 (center of 60px container) - 26 (half of 52px thumb height)
+    left: 20, // offset by padding
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
   },
   chiliEmoji: {
-    fontSize: 36,
+    fontSize: 28,
   },
   gimmeButton: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 32,
-    paddingVertical: Spacing.lg + 4,
-    paddingHorizontal: Spacing["4xl"] + 24,
+    backgroundColor: CARD_PINK,
+    borderRadius: 36,
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing["4xl"],
     width: "100%",
+    maxWidth: 320,
     alignItems: "center",
+    shadowColor: "#D95657",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   gimmeButtonText: {
     color: AppColors.white,
-    fontSize: 22,
-    fontWeight: "600",
-    fontStyle: "italic",
+    fontSize: 24,
+    fontWeight: "800",
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  analysisModal: {
-    backgroundColor: AppColors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing["3xl"],
-    alignItems: "center",
-    gap: Spacing.lg,
-  },
-  analysisText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: AppColors.textDark,
+  adContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingTop: 10,
+    backgroundColor: 'transparent',
   },
 });

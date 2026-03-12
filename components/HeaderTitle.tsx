@@ -1,20 +1,31 @@
 import React from "react";
-import { View, StyleSheet, Image } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { Text } from "react-native";
-import { Spacing, AppColors } from "@/constants/theme";
+import { AppColors } from "@/constants/theme";
 
 interface HeaderTitleProps {
   title: string;
+  showIcon?: boolean;
 }
 
 export function HeaderTitle({ title }: HeaderTitleProps) {
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../assets/images/icon.png")}
-        style={styles.icon}
-        resizeMode="contain"
-      />
+      {/* Layered text to mimic the thick white outline style from the provided image */}
+      <View style={styles.layerWrapper} pointerEvents="none">
+        <Text style={[styles.title, styles.outline, { transform: [{ translateX: -3 }, { translateY: 0 }] }]}>
+          {title}
+        </Text>
+        <Text style={[styles.title, styles.outline, { transform: [{ translateX: 3 }, { translateY: 0 }] }]}>
+          {title}
+        </Text>
+        <Text style={[styles.title, styles.outline, { transform: [{ translateX: 0 }, { translateY: -3 }] }]}>
+          {title}
+        </Text>
+        <Text style={[styles.title, styles.outline, { transform: [{ translateX: 0 }, { translateY: 3 }] }]}>
+          {title}
+        </Text>
+      </View>
       <Text style={styles.title}>{title}</Text>
     </View>
   );
@@ -22,19 +33,30 @@ export function HeaderTitle({ title }: HeaderTitleProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
   icon: {
-    width: 32,
-    height: 32,
-    marginRight: Spacing.sm,
-    borderRadius: 8,
+    width: 0,
+    height: 0,
   },
   title: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: "700",
     color: AppColors.primary,
+    fontFamily: "LilitaOne-Regular",
+    textAlign: "center",
+    lineHeight: 30,
+  },
+  outline: {
+    position: "absolute",
+    color: AppColors.white,
+    zIndex: 0,
+  },
+  layerWrapper: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

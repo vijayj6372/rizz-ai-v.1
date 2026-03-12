@@ -1,4 +1,4 @@
-import { Audio } from 'expo-audio';
+import { Audio } from 'expo-av';
 import { Platform } from 'react-native';
 
 let sound: any = null;
@@ -11,7 +11,7 @@ const initSound = async () => {
     isInitialized = true;
     if (Audio?.Sound) {
       sound = new Audio.Sound();
-      const source = require('@/assets/bubble.mp3');
+      const source = require('@/assets/button-press.wav');
       await sound.loadAsync(source);
     }
   } catch (error) {
@@ -33,7 +33,7 @@ export const playButtonSound = async () => {
     const status = await sound.getStatusAsync();
 
     if (!status?.isLoaded) {
-      await sound.loadAsync(require('@/assets/bubble.mp3'));
+      await sound.loadAsync(require('@/assets/button-press.wav'));
     }
 
     if (status?.isPlaying) {
