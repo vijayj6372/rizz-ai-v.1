@@ -53,8 +53,13 @@
           "photosPermission": "Rizz AI needs access to your photos to analyze conversation screenshots."
         }
       ],
-      "expo-audio",
-      "react-native-google-mobile-ads"
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-9793356380101545~6278569788",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
     ],
     "experiments": {
       "reactCompiler": true
@@ -64,9 +69,5 @@
         "projectId": "5e8522e2-3aa5-4b26-82ab-359add348ffb"
       }
     }
-  },
-  "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-9793356380101545~6278569788",
-    "ios_app_id": "ca-app-pub-9793356380101545~6278569788"
   }
 }

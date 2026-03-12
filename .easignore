@@ -41,3 +41,10 @@ app-example
 # generated native folders
 /ios
 /android
+
+# temp/unnecessary assets
+attached_assets/
+scripts/
+.local/
+replit.md
+.replit

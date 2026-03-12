@@ -5,7 +5,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { setAudioModeAsync } from "expo-audio";
+import { Audio } from "expo-av";
 import { Platform } from "react-native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
@@ -38,9 +38,14 @@ export default function App() {
     const initializeAudio = async () => {
       try {
         if (Platform.OS !== "web") {
-          await setAudioModeAsync({
-            allowsRecording: false,
-            playsInSilentMode: true,
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            interruptionModeIOS: 1, // InterruptionModeIOS.DoNotMix
+            shouldDuckAndroid: true,
+            interruptionModeAndroid: 1, // InterruptionModeAndroid.DoNotMix
+            playThroughEarpieceAndroid: false,
           });
         }
       } catch {
