@@ -11,8 +11,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { AppColors, Spacing, BorderRadius } from "@/constants/theme";
 import { playButtonSound } from "@/utils/soundUtils";
-import { getLookmaxingCredits, spendLookmaxingCredit, addLookmaxingCredits } from "@/utils/creditUtils";
-import { useRewardedAd, BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { getLookmaxingCredits, spendLookmaxingCredit } from "@/utils/creditUtils";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Lookmaxing">;
@@ -37,12 +36,6 @@ export default function LookmaxingScreen({ navigation }: Props) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scores, setScores] = useState<ScorecardData | null>(null);
   const [credits, setCredits] = useState(0);
-  const [showAdModal, setShowAdModal] = useState(false);
-
-  const { isLoaded, isEarnedReward, show, load } = useRewardedAd(
-    "ca-app-pub-3940256099942544/5224354917",
-    { requestNonPersonalizedAdsOnly: true }
-  );
 
   // Load credits on mount
   React.useEffect(() => {
@@ -51,29 +44,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
       setCredits(c);
     };
     init();
-    load();
-  }, [load]);
-
-  // Handle reward
-  React.useEffect(() => {
-    if (isEarnedReward) {
-      const grantCredits = async () => {
-        const newCredits = await addLookmaxingCredits(5);
-        setCredits(newCredits);
-        setShowAdModal(false);
-      };
-      grantCredits();
-    }
-  }, [isEarnedReward]);
-
-  const handleClaimNow = async () => {
-    await playButtonSound();
-    if (isLoaded) {
-      show();
-    } else {
-      load();
-    }
-  };
+  }, []);
 
   const processAnalysis = async () => {
     setIsAnalyzing(true);
@@ -135,7 +106,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
 
       if (result.assets && result.assets.length > 0) {
         if (credits <= 0) {
-          setShowAdModal(true);
+          Alert.alert("Out of Credits", "You've used all your uploads. Come back later!");
           return;
         }
         setPhotoUri(result.assets[0].uri);
@@ -178,7 +149,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
 
       if (result.assets && result.assets.length > 0) {
         if (credits <= 0) {
-          setShowAdModal(true);
+          Alert.alert("Out of Credits", "You've used all your uploads. Come back later!");
           return;
         }
         setPhotoUri(result.assets[0].uri);
@@ -197,7 +168,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
         if (photo && photo.uri) {
           if (credits <= 0) {
             setShowWebCam(false);
-            setShowAdModal(true);
+            Alert.alert("Out of Credits", "You've used all your uploads. Come back later!");
             return;
           }
           setPhotoUri(photo.uri);
@@ -307,42 +278,6 @@ export default function LookmaxingScreen({ navigation }: Props) {
             </Pressable>
           </View>
         </View>
-      </Modal>
-
-      <Modal visible={showAdModal} transparent animationType="fade">
-        <Pressable style={styles.adModalOverlay} onPress={() => setShowAdModal(false)}>
-          <View style={styles.adModalCard}>
-            <LinearGradient
-              colors={["#FF6C6D", "#FF865A"]}
-              style={styles.adModalGradient}
-            >
-              <View style={styles.adModalContent}>
-                <MaterialCommunityIcons name="fire" size={80} color="#FFFFFF" />
-                <Text style={styles.adModalTitle}>Out of Credits!</Text>
-                <Text style={styles.adModalSubtitle}>
-                  Watch 1 ad to get {"\n"}5 more uploads
-                </Text>
-                
-                <Pressable 
-                  style={({ pressed }) => [
-                    styles.claimButton,
-                    { opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }
-                  ]}
-                  onPress={handleClaimNow}
-                >
-                  <Text style={styles.claimButtonText}>CLAIM NOW</Text>
-                </Pressable>
-
-                <Pressable onPress={async () => {
-                  await playButtonSound();
-                  setShowAdModal(false);
-                }}>
-                  <Text style={styles.cancelText}>Maybe later</Text>
-                </Pressable>
-              </View>
-            </LinearGradient>
-          </View>
-        </Pressable>
       </Modal>
 
       {/* ── Custom Header (back arrow + Rizz AI title) ── */}
@@ -489,17 +424,6 @@ export default function LookmaxingScreen({ navigation }: Props) {
           </View>
         )}
       </ScrollView>
-
-      {/* ── Banner Ad ── */}
-      <View style={styles.adContainer}>
-        <BannerAd
-          unitId="ca-app-pub-3940256099942544/9214589741"
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
-        />
-      </View>
     </LinearGradient>
   );
 }
@@ -783,77 +707,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     textDecorationLine: "underline",
-  },
-  /* ── Ad Modal ── */
-  adModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  adModalCard: {
-    width: "100%",
-    maxWidth: 340,
-    borderRadius: 40,
-    overflow: "hidden",
-    elevation: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-  },
-  adModalGradient: {
-    padding: 32,
-  },
-  adModalContent: {
-    alignItems: "center",
-    gap: 16,
-  },
-  adModalTitle: {
-    fontSize: 32,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    textAlign: "center",
-    fontFamily: "LilitaOne-Regular",
-  },
-  adModalSubtitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    textAlign: "center",
-    marginBottom: 8,
-    lineHeight: 24,
-  },
-  claimButton: {
-    backgroundColor: "#FFFFFF",
-    width: "100%",
-    paddingVertical: 18,
-    borderRadius: 30,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  claimButtonText: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#FF6C6D",
-  },
-  cancelText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-    textDecorationLine: "underline",
-    marginTop: 8,
-  },
-  adContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    paddingTop: 10,
-    backgroundColor: 'transparent',
   },
 });

@@ -29,7 +29,6 @@ import { AppColors, Spacing, BorderRadius } from "@/constants/theme";
 import { getRandomPickupLines } from "@/data/pickupLines";
 import CopiedToast from "@/components/CopiedToast";
 import { playButtonSound } from "@/utils/soundUtils";
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 
 type Props = NativeStackScreenProps<RootStackParamList, "PickupLine">;
 
@@ -275,17 +274,6 @@ export default function PickupLineScreen({ navigation }: Props) {
             <Text style={styles.gimmeButtonText}>gimme another</Text>
           </Pressable>
         </View>
-
-        {/* ── Banner Ad ── */}
-        <View style={styles.adContainer}>
-          <BannerAd
-            unitId="ca-app-pub-3940256099942544/9214589741"
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-            requestOptions={{
-              requestNonPersonalizedAdsOnly: true,
-            }}
-          />
-        </View>
       </View>
     </LinearGradient>
   );
@@ -446,12 +434,5 @@ const styles = StyleSheet.create({
     color: AppColors.white,
     fontSize: 24,
     fontWeight: "800",
-  },
-  adContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    paddingTop: 10,
-    backgroundColor: 'transparent',
   },
 });

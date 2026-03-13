@@ -9,7 +9,6 @@ import { Audio } from "expo-av";
 import { Platform } from "react-native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import mobileAds from 'react-native-google-mobile-ads';
 
 import RootStackNavigator from "@/navigation/RootStackNavigator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -53,10 +52,6 @@ export default function App() {
       }
     };
     initializeAudio();
-    // Initialize Mobile Ads
-    mobileAds().initialize().then((adapterStatuses) => {
-      console.log('AdMob Initialized');
-    });
   }, []);
 
   if (!fontsLoaded) {
