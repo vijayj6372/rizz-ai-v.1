@@ -6,18 +6,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
+import { Ionicons, FontAwesome, MaterialCommunityIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { AppColors, Spacing, BorderRadius } from "@/constants/theme";
 import { playButtonSound } from "@/utils/soundUtils";
-import { getLookmaxingCredits, spendLookmaxingCredit } from "@/utils/creditUtils";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Lookmaxing">;
 
 const CARD_PINK = "#F86B6D";
-
 
 interface ScorecardData {
   masculinity: number;
@@ -35,16 +32,6 @@ export default function LookmaxingScreen({ navigation }: Props) {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scores, setScores] = useState<ScorecardData | null>(null);
-  const [credits, setCredits] = useState(0);
-
-  // Load credits on mount
-  React.useEffect(() => {
-    const init = async () => {
-      const c = await getLookmaxingCredits();
-      setCredits(c);
-    };
-    init();
-  }, []);
 
   const processAnalysis = async () => {
     setIsAnalyzing(true);
@@ -62,8 +49,6 @@ export default function LookmaxingScreen({ navigation }: Props) {
         overall: generateRandomScore(),
       });
       setIsAnalyzing(false);
-      const remaining = await spendLookmaxingCredit();
-      setCredits(remaining);
     }, 2000);
   };
 
@@ -77,7 +62,6 @@ export default function LookmaxingScreen({ navigation }: Props) {
   // Generates scores between 5 and 10 but makes 10 rare.
   const generateRandomScore = () => {
     const r = Math.random();
-    // probabilities (approx): 10 -> 3%, 9 -> 7%, 8 -> 15%, 7 -> 25%, 6 -> 30%, 5 -> 20%
     if (r < 0.03) return 10;
     if (r < 0.10) return 9;
     if (r < 0.25) return 8;
@@ -105,12 +89,8 @@ export default function LookmaxingScreen({ navigation }: Props) {
       });
 
       if (result.assets && result.assets.length > 0) {
-        if (credits <= 0) {
-          Alert.alert("Out of Credits", "You've used all your uploads. Come back later!");
-          return;
-        }
         setPhotoUri(result.assets[0].uri);
-        processAnalysis();
+        await processAnalysis();
       }
     } catch (error) {
       setIsAnalyzing(false);
@@ -148,12 +128,8 @@ export default function LookmaxingScreen({ navigation }: Props) {
       });
 
       if (result.assets && result.assets.length > 0) {
-        if (credits <= 0) {
-          Alert.alert("Out of Credits", "You've used all your uploads. Come back later!");
-          return;
-        }
         setPhotoUri(result.assets[0].uri);
-        processAnalysis();
+        await processAnalysis();
       }
     } catch (error) {
       setIsAnalyzing(false);
@@ -166,43 +142,13 @@ export default function LookmaxingScreen({ navigation }: Props) {
       try {
         const photo = await cameraRef.current.takePictureAsync({ base64: true });
         if (photo && photo.uri) {
-          if (credits <= 0) {
-            setShowWebCam(false);
-            Alert.alert("Out of Credits", "You've used all your uploads. Come back later!");
-            return;
-          }
           setPhotoUri(photo.uri);
           setShowWebCam(false);
-          processAnalysis();
+          await processAnalysis();
         }
       } catch (err) {
         console.log("Error capturing photo:", err);
       }
-    }
-  };
-
-
-
-  const handleShare = async () => {
-    try {
-      if (!viewRef.current) return;
-
-      const uri = await captureRef(viewRef, {
-        format: "png",
-        quality: 0.9,
-      });
-
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        Alert.alert("Sharing not available", "Sharing is not available on this platform.");
-        return;
-      }
-
-      await Sharing.shareAsync(uri, {
-        dialogTitle: "Share your Lookmaxing Score",
-      });
-    } catch (error) {
-      console.log("Error sharing:", error);
     }
   };
 
@@ -214,23 +160,6 @@ export default function LookmaxingScreen({ navigation }: Props) {
         format: "png",
         quality: 0.9,
       });
-
-      // Try open the target app first (deep link) so user is taken there if available,
-      // then open the share sheet as a fallback so they can pick the app and attach the image.
-      let scheme = "";
-      if (app === "whatsapp") scheme = "whatsapp://send?text=";
-      if (app === "instagram") scheme = "instagram://library";
-      if (app === "snapchat") scheme = "snapchat://"
-
-      try {
-        const can = await Linking.canOpenURL(scheme || "");
-        if (can && scheme) {
-          // open app with a short message (some apps ignore params)
-          await Linking.openURL(scheme + encodeURIComponent("Check out my Lookmaxing score!"));
-        }
-      } catch (e) {
-        // ignore deep link failures and continue to share sheet
-      }
 
       const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
@@ -248,17 +177,18 @@ export default function LookmaxingScreen({ navigation }: Props) {
 
   return (
     <LinearGradient
-      colors={[AppColors.background.gradientTop, AppColors.background.gradientBottom]}
+      colors={["#ABBFF2", "#BCCFFA"]}
       style={styles.container}
     >
       <Modal visible={isAnalyzing} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.analysisModal}>
-            <ActivityIndicator size="large" color={AppColors.primary} />
+            <ActivityIndicator size="large" color={CARD_PINK} />
             <Text style={styles.analysisText}>Analyzing your looks...</Text>
           </View>
         </View>
       </Modal>
+
       <Modal visible={showWebCam} transparent={false} animationType="slide">
         <View style={styles.webcamModal}>
           <CameraView style={styles.cameraView} ref={cameraRef} facing="front" />
@@ -280,9 +210,8 @@ export default function LookmaxingScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      {/* ── Custom Header (back arrow + Rizz AI title) ── */}
+      {/* ── Custom Header ── */}
       <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
-        {/* Back Arrow */}
         <Pressable
           style={styles.headerButton}
           onPress={async () => {
@@ -291,69 +220,45 @@ export default function LookmaxingScreen({ navigation }: Props) {
           }}
           hitSlop={12}
         >
-          <Ionicons name="chevron-back" size={34} color={CARD_PINK} />
+          <Ionicons name="chevron-back" size={32} color={CARD_PINK} />
         </Pressable>
 
-        {/* Rizz AI Title */}
         <View style={styles.headerTitleWrapper}>
-          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: -3 }, { translateY: 0 }] }]} aria-hidden>
-            Rizz AI
-          </Text>
-          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 3 }, { translateY: 0 }] }]} aria-hidden>
-            Rizz AI
-          </Text>
-          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 0 }, { translateY: -3 }] }]} aria-hidden>
-            Rizz AI
-          </Text>
-          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 0 }, { translateY: 3 }] }]} aria-hidden>
-            Rizz AI
-          </Text>
-          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: -2 }, { translateY: -2 }] }]} aria-hidden>
-            Rizz AI
-          </Text>
-          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 2 }, { translateY: -2 }] }]} aria-hidden>
-            Rizz AI
-          </Text>
-          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: -2 }, { translateY: 2 }] }]} aria-hidden>
-            Rizz AI
-          </Text>
-          <Text style={[styles.headerTitleOutline, { transform: [{ translateX: 2 }, { translateY: 2 }] }]} aria-hidden>
-            Rizz AI
-          </Text>
           <Text style={styles.headerTitle}>Rizz AI</Text>
         </View>
 
-        {/* Empty spacer to balance the back arrow */}
         <View style={styles.headerButton} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
         {!scores ? (
           <View style={styles.uploadContainer}>
-            <Text style={styles.emoji}>✨</Text>
-            <Text style={styles.title}>Rizz AI</Text>
-            <Text style={styles.subtitle}>Upload a photo or take a selfie to get your AI-powered glow-up scores. {"\n"} Remaining: {credits} uploads</Text>
+            <View style={styles.welcomeContainer}>
+              <View style={styles.iconCircle}>
+                <MaterialCommunityIcons name="face-man-shimmer" size={50} color="white" />
+              </View>
+              <Text style={styles.title}>Lookmaxing</Text>
+              <Text style={styles.subtitle}>Get your AI-powered glow-up scores.{"\n"}Discover your unique features!</Text>
+            </View>
 
-            <View style={styles.buttonsRow}>
+            <View style={styles.buttonsColumn}>
               <Pressable style={styles.uploadButton} onPress={async () => {
                 await playButtonSound();
                 handleUploadPhoto();
               }}>
-                <Ionicons name="image-outline" size={24} color="white" />
-                <Text style={styles.uploadButtonText}>Upload Photo</Text>
+                <Ionicons name="image" size={24} color="white" />
+                <Text style={styles.buttonText}>Upload Photo</Text>
               </Pressable>
 
               <Pressable style={styles.selfieButton} onPress={async () => {
                 await playButtonSound();
                 handleTakeSelfie();
               }}>
-                <Ionicons name="camera-outline" size={24} color="white" />
-                <Text style={styles.uploadButtonText}>Take Selfie</Text>
+                <Ionicons name="camera" size={24} color="white" />
+                <Text style={styles.buttonText}>Take Selfie</Text>
               </Pressable>
             </View>
           </View>
-
         ) : (
           <View style={styles.resultContainer}>
             <Text style={styles.shareHeaderTitle}>Share and compare with your friends</Text>
@@ -363,14 +268,18 @@ export default function LookmaxingScreen({ navigation }: Props) {
               <LinearGradient
                 colors={["#FF7A26", "#F2226B", "#D10F80"]}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 0.8, y: 1 }}
+                end={{ x: 0.5, y: 1 }}
                 style={styles.scoreCard}
               >
                 {/* Header: Score & Photo */}
                 <View style={styles.cardHeader}>
                   <Text style={styles.overallText}>You're a {scores.overall}</Text>
                   <View style={styles.photoContainer}>
-                    {photoUri && <Image source={{ uri: photoUri }} style={styles.userPhoto} />}
+                    {photoUri ? (
+                      <Image source={{ uri: photoUri }} style={styles.userPhoto} />
+                    ) : (
+                       <Ionicons name="person" size={40} color="white" />
+                    )}
                   </View>
                 </View>
 
@@ -392,7 +301,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
                 await playButtonSound();
                 handleShareForApp("whatsapp");
               }}>
-                <Ionicons name="logo-whatsapp" size={32} color="white" />
+                <Ionicons name="chatbubble" size={30} color="white" />
               </Pressable>
 
               <Pressable onPress={async () => {
@@ -419,7 +328,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
               await playButtonSound();
               setScores(null);
             }}>
-              <Text style={styles.resetButtonText}>Upload Another Photo</Text>
+              <Text style={styles.resetButtonText}>Analyze Another Photo</Text>
             </Pressable>
           </View>
         )}
@@ -444,8 +353,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
-  /* ── Custom Header ── */
   headerBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -460,113 +367,120 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitleWrapper: {
-    position: "relative",
+    flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitleOutline: {
-    position: "absolute",
-    fontSize: 30,
-    fontFamily: "LilitaOne-Regular",
-    color: "#FFFFFF",
-    letterSpacing: 1,
   },
   headerTitle: {
-    fontSize: 30,
+    fontSize: 32,
     fontFamily: "LilitaOne-Regular",
     color: CARD_PINK,
     letterSpacing: 1,
   },
-
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: Spacing["2xl"],
+    paddingHorizontal: 24,
     paddingVertical: Spacing.xl,
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
-    maxWidth: 600,
-    alignSelf: "center",
   },
-
-  uploadContainer: {
+  welcomeContainer: {
     alignItems: "center",
-    gap: Spacing.lg,
+    marginBottom: 40,
   },
-  emoji: {
-    fontSize: 72,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: AppColors.primary,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 18,
-    color: "#5A7A8A",
-    textAlign: "center",
-    fontWeight: "500",
-    lineHeight: 26,
-    marginBottom: Spacing.xl,
-  },
-  buttonsRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-    alignItems: "center",
+  iconCircle: {
+    backgroundColor: CARD_PINK,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: "center",
-  },
-  uploadButton: {
-    backgroundColor: AppColors.primary,
-    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    gap: Spacing.sm,
+    marginBottom: 16,
     shadowColor: "#D95657",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
   },
-  selfieButton: {
-    backgroundColor: "#4A90D9",
+  uploadContainer: {
+    width: "100%",
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 42,
+    fontFamily: "LilitaOne-Regular",
+    color: "white",
+    textShadowColor: "rgba(0,0,0,0.1)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  subtitle: {
+    fontSize: 20,
+    color: "#4A4A4A",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 28,
+    fontWeight: "600",
+  },
+  buttonsColumn: {
+    width: "100%",
+    gap: 20,
+    maxWidth: 320,
+  },
+  uploadButton: {
+    backgroundColor: CARD_PINK,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    gap: Spacing.sm,
-    shadowColor: "#3570AA",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    justifyContent: "center",
+    height: 70,
+    borderRadius: 35,
+    gap: 12,
+    shadowColor: "#D95657",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  uploadButtonText: {
-    color: AppColors.white,
-    fontSize: 18,
-    fontWeight: "700",
+  selfieButton: {
+    backgroundColor: CARD_PINK,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 70,
+    borderRadius: 35,
+    gap: 12,
+    shadowColor: "#D95657",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
   },
-
+  buttonText: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "800",
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     justifyContent: "center",
     alignItems: "center",
   },
   analysisModal: {
-    backgroundColor: AppColors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing["3xl"],
+    backgroundColor: "white",
+    borderRadius: 30,
+    padding: 50,
     alignItems: "center",
-    gap: Spacing.lg,
+    gap: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
   analysisText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: AppColors.textDark,
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#000",
   },
   webcamModal: {
     flex: 1,
@@ -576,78 +490,78 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   webcamControls: {
-    padding: Spacing["2xl"],
+    padding: 30,
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#000',
-    paddingBottom: Spacing["4xl"],
+    paddingBottom: 50,
   },
   webcamBtn: {
-    backgroundColor: AppColors.primary,
+    backgroundColor: CARD_PINK,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.full,
-    gap: Spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 30,
+    gap: 8,
   },
   webcamCancelBtn: {
-    backgroundColor: "#555",
+    backgroundColor: "#333",
   },
   webcamBtnText: {
-    color: AppColors.white,
+    color: "white",
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "bold",
   },
   resultContainer: {
-
     width: "100%",
+    maxWidth: 400,
     alignItems: "center",
   },
   shareHeaderTitle: {
-    color: "black",
-    fontSize: 22,
-    fontWeight: "700",
+    color: "#000",
+    fontSize: 26,
+    fontWeight: "900",
     textAlign: "center",
-    marginBottom: Spacing.lg,
+    marginBottom: 30,
   },
   cardWrapper: {
     width: "100%",
-    borderRadius: 24,
-    overflow: "hidden", // ensures gradient respects border radius when capturing
+    borderRadius: 40,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
-    backgroundColor: "transparent",
+    elevation: 15,
   },
   scoreCard: {
     width: "100%",
-    padding: Spacing.xl,
-    paddingTop: Spacing["2xl"],
-    paddingBottom: Spacing["3xl"],
-    borderRadius: 24,
+    padding: 30,
+    paddingTop: 50,
+    paddingBottom: 50,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Spacing["2xl"],
+    marginBottom: 40,
   },
   overallText: {
     color: "white",
-    fontSize: 36,
-    fontWeight: "bold",
-    fontFamily: Platform.OS === "ios" ? "AvenirNext-Bold" : "sans-serif-condensed", // Try to match the bold sleek font
+    fontSize: 48,
+    fontWeight: "900",
   },
   photoContainer: {
-    width: 65,
-    height: 65,
-    borderRadius: 35,
-    borderWidth: 3,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 4,
     borderColor: "white",
     overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   userPhoto: {
     width: "100%",
@@ -655,7 +569,7 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
   },
   scoreList: {
-    gap: Spacing.lg,
+    gap: 20,
   },
   scoreRow: {
     flexDirection: "row",
@@ -665,47 +579,48 @@ const styles = StyleSheet.create({
   scoreLabelContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
+    gap: 12,
   },
   rowEmoji: {
-    fontSize: 24,
+    fontSize: 32,
   },
   rowLabelText: {
     color: "white",
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 24,
+    fontWeight: "800",
   },
   rowScoreText: {
     color: "white",
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 24,
+    fontWeight: "900",
   },
   shareRow: {
     flexDirection: "row",
-    gap: Spacing["xl"],
-    marginTop: Spacing["2xl"],
-    marginBottom: Spacing.xl,
+    gap: 24,
+    marginTop: 40,
+    marginBottom: 20,
     justifyContent: "center",
   },
   shareIconBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   resetButton: {
-    marginTop: Spacing.md,
+    marginTop: 20,
+    padding: 10,
   },
   resetButtonText: {
-    color: "#5A7A8A",
-    fontSize: 16,
-    fontWeight: "600",
+    color: "#000",
+    fontSize: 18,
+    fontWeight: "800",
     textDecorationLine: "underline",
   },
 });
