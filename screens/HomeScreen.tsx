@@ -211,6 +211,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           <Ionicons name="settings-sharp" size={26} color="#FFFFFF" />
         </Pressable>
 
+        {/* ── Hamburger Menu Button (top-right corner) ── */}
+        <Pressable
+          style={[styles.hamburgerButton, { top: insets.top + 16 }]}
+          onPress={async () => {
+            await playButtonSound();
+            navigation.navigate("FunFeatures");
+          }}
+        >
+          <Ionicons name="menu" size={28} color="#FFFFFF" />
+        </Pressable>
+
         {/* ── Title Area (centered, below settings button) ── */}
         <View style={styles.titleContainer}>
           <View style={styles.titleWrapper}>
@@ -381,6 +392,24 @@ const styles = StyleSheet.create({
   settingsButton: {
     position: "absolute",
     left: 20,
+    backgroundColor: CARD_PINK,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+    shadowColor: SHADOW_PINK,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+
+  /* ── Hamburger Menu Button (top-right, absolute positioned) ── */
+  hamburgerButton: {
+    position: "absolute",
+    right: 20,
     backgroundColor: CARD_PINK,
     width: 46,
     height: 46,
