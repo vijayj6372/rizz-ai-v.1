@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
+import * as Clipboard from "expo-clipboard";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { playButtonSound } from "@/utils/soundUtils";
 
@@ -87,6 +88,14 @@ export default function RateMyCrushScreen({ navigation }: Props) {
     datingPotential: number;
     ratedCount: number;
   } | null>(null);
+  const [copiedKey, setCopiedKey] = useState<"comment" | "verdict" | null>(null);
+
+  const copyText = async (text: string, key: "comment" | "verdict") => {
+    await Clipboard.setStringAsync(text);
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -261,11 +270,48 @@ export default function RateMyCrushScreen({ navigation }: Props) {
               ))}
             </View>
 
-            {/* AI Comment */}
-            <View style={[styles.commentBubble, { borderLeftColor: result.verdict.color }]}>
-              <Text style={styles.commentLabel}>💬 AI Analysis</Text>
+            {/* AI Comment — tap / long-press to copy */}
+            <Pressable
+              style={[
+                styles.commentBubble,
+                { borderLeftColor: result.verdict.color },
+                copiedKey === "comment" && { backgroundColor: "rgba(255,255,255,0.09)" },
+              ]}
+              onPress={() => copyText(result.comment, "comment")}
+              onLongPress={() => copyText(result.comment, "comment")}
+              delayLongPress={400}
+            >
+              <View style={styles.commentBubbleTop}>
+                <Text style={styles.commentLabel}>💬 AI Analysis</Text>
+                <View style={[styles.copyHint, copiedKey === "comment" && { backgroundColor: result.verdict.color + "CC" }]}>
+                  <Ionicons
+                    name={copiedKey === "comment" ? "checkmark-circle" : "copy-outline"}
+                    size={12}
+                    color={copiedKey === "comment" ? "#fff" : "rgba(255,255,255,0.35)"}
+                  />
+                  <Text style={[styles.copyHintText, copiedKey === "comment" && { color: "#fff" }]}>
+                    {copiedKey === "comment" ? "Copied!" : "Tap to copy"}
+                  </Text>
+                </View>
+              </View>
               <Text style={styles.commentText}>{result.comment}</Text>
-            </View>
+            </Pressable>
+
+            {/* Verdict — tap / long-press to copy */}
+            <Pressable
+              style={[
+                styles.verdictCopyRow,
+                copiedKey === "verdict" && { borderColor: result.verdict.color + "55", backgroundColor: result.verdict.color + "11" },
+              ]}
+              onPress={() => copyText(`${result.verdict.label} — ${result.score.toFixed(1)}/10 — ${result.verdict.sub}`, "verdict")}
+              onLongPress={() => copyText(`${result.verdict.label} — ${result.score.toFixed(1)}/10 — ${result.verdict.sub}`, "verdict")}
+              delayLongPress={400}
+            >
+              <Ionicons name={copiedKey === "verdict" ? "checkmark-circle" : "share-outline"} size={14} color={result.verdict.color} />
+              <Text style={[styles.verdictCopyText, { color: result.verdict.color }]}>
+                {copiedKey === "verdict" ? "Verdict copied to clipboard!" : "Tap to copy full verdict"}
+              </Text>
+            </Pressable>
 
             <Text style={styles.ratedCount}>📊 {result.ratedCount.toLocaleString()} people rated crushes today</Text>
 
@@ -385,10 +431,25 @@ const styles = StyleSheet.create({
   metricScore: { width: 30, fontSize: 12, fontWeight: "800", textAlign: "right" },
 
   commentBubble: {
-    width: "100%", backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 16, padding: 16, gap: 6, borderLeftWidth: 3,
+    width: "100%", backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 16, padding: 16, gap: 8, borderLeftWidth: 3,
   },
+  commentBubbleTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   commentLabel: { color: "rgba(255,255,255,0.4)", fontSize: 12, fontWeight: "700" },
   commentText: { color: "#fff", fontSize: 14, lineHeight: 22 },
+
+  verdictCopyRow: {
+    width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+    paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)",
+  },
+  verdictCopyText: { fontSize: 13, fontWeight: "700" },
+
+  copyHint: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.07)",
+  },
+  copyHintText: { color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: "600" },
 
   ratedCount: { color: "rgba(255,255,255,0.3)", fontSize: 12, textAlign: "center" },
 

@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
+import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import { RootStackParamList } from "@/navigation/RootStackNavigator";
 import { playButtonSound } from "@/utils/soundUtils";
@@ -304,7 +305,23 @@ export default function RoastMySelfieScreen({ navigation }: Props) {
     features: { label: string; score: number }[];
     shareCount: number;
   } | null>(null);
+  const [copiedKey, setCopiedKey] = useState<"roast" | "tip" | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const lastTapRef = useRef<number>(0);
+
+  const copyText = async (text: string, key: "roast" | "tip") => {
+    await Clipboard.setStringAsync(text);
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleRoastTap = () => {
+    if (!result) return;
+    const now = Date.now();
+    lastTapRef.current = now;
+    copyText(result.roast, "roast");
+  };
 
   useEffect(() => {
     if (loading) {
@@ -490,15 +507,59 @@ export default function RoastMySelfieScreen({ navigation }: Props) {
               </View>
             </View>
 
-            <View style={[styles.roastBubble, { borderLeftColor: cfg.color }]}>
-              <Text style={styles.roastEmoji}>💬</Text>
+            {/* Roast Bubble — tap / double-tap / long-press to copy */}
+            <Pressable
+              style={[
+                styles.roastBubble,
+                { borderLeftColor: cfg.color },
+                copiedKey === "roast" && { backgroundColor: "rgba(255,255,255,0.1)" },
+              ]}
+              onPress={handleRoastTap}
+              onLongPress={() => result && copyText(result.roast, "roast")}
+              delayLongPress={400}
+            >
+              <View style={styles.roastBubbleTop}>
+                <Text style={styles.roastEmoji}>💬</Text>
+                <View style={[styles.copyHint, copiedKey === "roast" && { backgroundColor: cfg.color + "CC" }]}>
+                  <Ionicons
+                    name={copiedKey === "roast" ? "checkmark-circle" : "copy-outline"}
+                    size={12}
+                    color={copiedKey === "roast" ? "#fff" : "rgba(255,255,255,0.35)"}
+                  />
+                  <Text style={[styles.copyHintText, copiedKey === "roast" && { color: "#fff" }]}>
+                    {copiedKey === "roast" ? "Copied!" : "Tap to copy"}
+                  </Text>
+                </View>
+              </View>
               <Text style={styles.roastText}>{result.roast}</Text>
-            </View>
+            </Pressable>
 
-            <View style={[styles.tipBox, { borderLeftColor: cfg.color }]}>
-              <Text style={[styles.tipLabel, { color: cfg.color }]}>🔥 Glow-Up Tip:</Text>
+            {/* Tip Box — tap / long-press to copy */}
+            <Pressable
+              style={[
+                styles.tipBox,
+                { borderLeftColor: cfg.color },
+                copiedKey === "tip" && { backgroundColor: "rgba(255,255,255,0.08)" },
+              ]}
+              onPress={() => result && copyText(result.tip, "tip")}
+              onLongPress={() => result && copyText(result.tip, "tip")}
+              delayLongPress={400}
+            >
+              <View style={styles.tipBoxTop}>
+                <Text style={[styles.tipLabel, { color: cfg.color }]}>🔥 Glow-Up Tip:</Text>
+                <View style={[styles.copyHint, copiedKey === "tip" && { backgroundColor: cfg.color + "CC" }]}>
+                  <Ionicons
+                    name={copiedKey === "tip" ? "checkmark-circle" : "copy-outline"}
+                    size={12}
+                    color={copiedKey === "tip" ? "#fff" : "rgba(255,255,255,0.35)"}
+                  />
+                  <Text style={[styles.copyHintText, copiedKey === "tip" && { color: "#fff" }]}>
+                    {copiedKey === "tip" ? "Copied!" : "Tap to copy"}
+                  </Text>
+                </View>
+              </View>
               <Text style={styles.tipText}>"{result.tip}"</Text>
-            </View>
+            </Pressable>
 
             <View style={styles.resultActions}>
               <Pressable style={styles.secondaryBtn} onPress={() => { setImageUri(null); setResult(null); }}>
@@ -603,17 +664,26 @@ const styles = StyleSheet.create({
 
   roastBubble: {
     width: "100%", backgroundColor: "rgba(255,255,255,0.06)",
-    borderRadius: 16, padding: 16, borderLeftWidth: 3, flexDirection: "row", gap: 10,
+    borderRadius: 16, padding: 16, borderLeftWidth: 3, gap: 10,
   },
+  roastBubbleTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   roastEmoji: { fontSize: 20 },
-  roastText: { color: "#fff", fontSize: 15, lineHeight: 24, flex: 1 },
+  roastText: { color: "#fff", fontSize: 15, lineHeight: 24 },
 
   tipBox: {
     width: "100%", backgroundColor: "rgba(255,255,255,0.04)",
-    borderRadius: 16, padding: 16, borderLeftWidth: 3, gap: 6,
+    borderRadius: 16, padding: 16, borderLeftWidth: 3, gap: 8,
   },
+  tipBoxTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   tipLabel: { fontWeight: "800", fontSize: 14 },
   tipText: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontStyle: "italic", lineHeight: 20 },
+
+  copyHint: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.07)",
+  },
+  copyHintText: { color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: "600" },
 
   resultActions: { flexDirection: "row", gap: 10, width: "100%" },
   primaryBtn: { flex: 1, paddingVertical: 16, borderRadius: 16, alignItems: "center" },
