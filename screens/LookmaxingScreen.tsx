@@ -70,7 +70,7 @@ const RECOS = [
   { icon: "🌞", title: "SPF every morning",        desc: "Prevents UV-induced aging — the most impactful anti-aging move.",   color: "#FFB74D" },
 ];
 
-const PAGE_LABELS = ["Ratings", "Analysis", "Share"];
+const PAGE_LABELS = ["Ratings", "Look Score", "Tips"];
 
 const rnd = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
@@ -637,34 +637,34 @@ export default function LookmaxingScreen({ navigation }: Props) {
               </View>
 
               <Pressable style={s.nextPageBtn} onPress={() => goToPage(1)}>
-                <Text style={s.nextPageTxt}>See Your Analysis</Text>
+                <Text style={s.nextPageTxt}>See Look Score Card</Text>
                 <Ionicons name="chevron-forward" size={15} color={CORAL} />
               </Pressable>
             </ScrollView>
 
-            {/* ───── PAGE 2: Analysis ───── */}
+            {/* ───── PAGE 2: Shareable Look Score Card ───── */}
             <ScrollView style={{ width: PAGE_W }} contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
-              <PageHeader title="Your Analysis" sub="Facial structure breakdown" accent={GRAD1} icon="scan-outline" />
+              <PageHeader title="Your Look Score Card" sub="Share your results with the world" accent={GRAD2} icon="share-social-outline" />
 
-              <View style={s.analysisList}>
-                {[
-                  { label: "Canthal Tilt", value: faceData.canthalTilt },
-                  { label: "Eye Shape",    value: faceData.eyeShape    },
-                  { label: "Eye Type",     value: faceData.eyeType     },
-                  { label: "Face Shape",   value: faceData.faceShape   },
-                  { label: "Jaw Width",    value: faceData.jawWidth    },
-                  { label: "Nose Shape",   value: faceData.noseShape   },
-                ].map((row, i) => <AnalysisRow key={row.label} label={row.label} value={row.value} index={i} />)}
+              {/* Shareable card */}
+              <View ref={shareRef} collapsable={false} style={s.shareCardOuter}>
+                <ShareCard photoUri={photoUri} scores={scores} />
               </View>
 
-              {/* Summary insight */}
-              <View style={s.insightCard}>
-                <LinearGradient colors={[GRAD2 + "25", GRAD3 + "10"]} style={s.insightGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                  <Ionicons name="bulb" size={20} color={GRAD2} />
-                  <Text style={s.insightTxt}>
-                    Swipe right for personalized recommendations based on your facial structure.
-                  </Text>
-                </LinearGradient>
+              {/* Share buttons */}
+              <View style={s.shareRow}>
+                <ShareBtn label="WhatsApp" colors={["#25D366", "#1DA851"]} onPress={handleShare} disabled={sharing}>
+                  {sharing ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="logo-whatsapp" size={26} color="#fff" />}
+                </ShareBtn>
+                <ShareBtn label="Instagram" colors={["#f09433", "#dc2743", "#bc1888"]} onPress={handleShare} disabled={sharing}>
+                  {sharing ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="logo-instagram" size={26} color="#fff" />}
+                </ShareBtn>
+                <ShareBtn label="Snapchat" colors={["#FFFC00", "#FFD800"]} onPress={handleShare} disabled={sharing}>
+                  {sharing ? <ActivityIndicator color="#000" size="small" /> : <FontAwesome name="snapchat-ghost" size={24} color="#000" />}
+                </ShareBtn>
+                <ShareBtn label="More" colors={[GRAD1, CORAL]} onPress={handleShare} disabled={sharing}>
+                  {sharing ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="share-social" size={24} color="#fff" />}
+                </ShareBtn>
               </View>
 
               <Pressable style={s.nextPageBtn} onPress={() => goToPage(2)}>
@@ -673,7 +673,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
               </Pressable>
             </ScrollView>
 
-            {/* ───── PAGE 3: Recommendations + Share ───── */}
+            {/* ───── PAGE 3: Recommendations ───── */}
             <ScrollView style={{ width: PAGE_W }} contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
               <PageHeader title="Recommendations" sub="Personalized for your ratings" accent={CORAL} icon="star-outline" />
 
@@ -690,35 +690,6 @@ export default function LookmaxingScreen({ navigation }: Props) {
                   <Ionicons name="chevron-forward" size={14} color={CORAL} style={{ marginLeft: "auto" }} />
                 </LinearGradient>
               </Pressable>
-
-              {/* Share card */}
-              <View style={s.shareSection}>
-                <View style={s.shareSectionLabel}>
-                  <View style={s.shareLine} />
-                  <Text style={s.shareSectionTxt}>SHAREABLE CARD</Text>
-                  <View style={s.shareLine} />
-                </View>
-
-                <View ref={shareRef} collapsable={false} style={s.shareCardOuter}>
-                  <ShareCard photoUri={photoUri} scores={scores} />
-                </View>
-
-                {/* Share buttons */}
-                <View style={s.shareRow}>
-                  <ShareBtn label="WhatsApp" colors={["#25D366", "#1DA851"]} onPress={handleShare} disabled={sharing}>
-                    {sharing ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="logo-whatsapp" size={26} color="#fff" />}
-                  </ShareBtn>
-                  <ShareBtn label="Instagram" colors={["#f09433", "#dc2743", "#bc1888"]} onPress={handleShare} disabled={sharing}>
-                    {sharing ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="logo-instagram" size={26} color="#fff" />}
-                  </ShareBtn>
-                  <ShareBtn label="Snapchat" colors={["#FFFC00", "#FFD800"]} onPress={handleShare} disabled={sharing}>
-                    {sharing ? <ActivityIndicator color="#000" size="small" /> : <FontAwesome name="snapchat-ghost" size={24} color="#000" />}
-                  </ShareBtn>
-                  <ShareBtn label="More" colors={[GRAD1, CORAL]} onPress={handleShare} disabled={sharing}>
-                    {sharing ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name="share-social" size={24} color="#fff" />}
-                  </ShareBtn>
-                </View>
-              </View>
 
               {/* Try Another */}
               <Pressable style={s.tryBtn} onPress={async () => { await playButtonSound(); handleReset(); }}>
