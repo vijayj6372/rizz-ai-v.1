@@ -28,10 +28,18 @@ const CORAL_SHD = "#D95657";
 const GRAD1     = "#FF6C6D";
 const GRAD2     = "#FF865A";
 const GRAD3     = "#F69C50";
-const CARD_BG   = "rgba(255,255,255,0.18)";
-const CARD_BG2  = "rgba(255,255,255,0.25)";
-const BORD      = "rgba(255,255,255,0.35)";
-const DARK_CARD = "rgba(0,0,0,0.12)";
+const CARD_BG   = "rgba(255,255,255,0.88)";
+const CARD_BG2  = "rgba(255,255,255,0.95)";
+const BORD      = "rgba(200,210,240,0.8)";
+const TXT_PRI   = "#1A1A2E";
+const TXT_SEC   = "#5A5A7A";
+
+/* ─── Red / Green Score Colours ─── */
+const G_HI  = "#22C55E";   // 80+ bright green
+const G_MID = "#86EFAC";   // 70+ soft green
+const Y_MID = "#FACC15";   // 60+ yellow
+const R_LOW = "#F97316";   // 50+ orange-red
+const R_HI  = "#EF4444";   // <50 red
 
 /* ─── Interfaces ─── */
 interface Scores {
@@ -78,19 +86,19 @@ function gen100(): number {
 }
 
 function getTier(s: number): { label: string; color: string } {
-  if (s >= 90) return { label: "Chad",             color: "#FF3D3D" };
-  if (s >= 80) return { label: "Chadlite",         color: CORAL     };
-  if (s >= 70) return { label: "High-Tier Normie", color: GRAD2     };
-  if (s >= 60) return { label: "Normie",           color: GRAD3     };
-  return             { label: "Below Average",     color: "#FFB74D" };
+  if (s >= 90) return { label: "Chad",             color: G_HI  };
+  if (s >= 80) return { label: "Chadlite",         color: G_MID };
+  if (s >= 70) return { label: "High-Tier Normie", color: Y_MID };
+  if (s >= 60) return { label: "Normie",           color: R_LOW };
+  return             { label: "Below Average",     color: R_HI  };
 }
 
 function barColor(s: number): [string, string] {
-  if (s >= 80) return [GRAD1, CORAL_SHD];
-  if (s >= 70) return [GRAD2, GRAD1];
-  if (s >= 60) return [GRAD3, GRAD2];
-  if (s >= 50) return ["#FFB74D", GRAD3];
-  return              ["#E0E0E0", "#BDBDBD"];
+  if (s >= 80) return [G_HI,  "#16A34A"];
+  if (s >= 70) return [G_MID, G_HI    ];
+  if (s >= 60) return [Y_MID, "#CA8A04"];
+  if (s >= 50) return [R_LOW, "#C2410C"];
+  return              [R_HI,  "#B91C1C"];
 }
 
 function haptic() {
@@ -130,14 +138,14 @@ const mc = StyleSheet.create({
     width: (CW - 12) / 2, backgroundColor: CARD_BG2, borderRadius: 20,
     borderWidth: 1.5, borderColor: BORD,
     padding: 16, gap: 5,
-    shadowColor: CORAL_SHD, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 5,
+    shadowColor: "#9BB0E8", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6,
   },
   label: { fontSize: 10, fontWeight: "900", color: CORAL, letterSpacing: 1.4 },
-  score: { fontSize: 48, fontWeight: "900", color: "#fff", lineHeight: 52 },
+  score: { fontSize: 48, fontWeight: "900", color: TXT_PRI, lineHeight: 52 },
   tierRow: { flexDirection: "row", alignItems: "center", gap: 5 },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  tierTxt: { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.75)" },
-  track: { height: 5, backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 3, overflow: "hidden", marginTop: 4 },
+  tierTxt: { fontSize: 11, fontWeight: "700", color: TXT_SEC },
+  track: { height: 6, backgroundColor: "rgba(180,195,230,0.45)", borderRadius: 3, overflow: "hidden", marginTop: 4 },
 });
 
 /* ═══════════════ ANALYSIS ROW ═══════════════ */
@@ -153,10 +161,11 @@ const ar = StyleSheet.create({
   row: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     backgroundColor: CARD_BG, borderRadius: 16, paddingVertical: 15, paddingHorizontal: 18,
-    borderWidth: 1, borderColor: BORD,
+    borderWidth: 1.5, borderColor: BORD,
+    shadowColor: "#9BB0E8", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 6, elevation: 3,
   },
-  label: { color: "rgba(255,255,255,0.7)", fontSize: 14, fontWeight: "600" },
-  value: { color: "#fff", fontSize: 14, fontWeight: "800" },
+  label: { color: TXT_SEC, fontSize: 14, fontWeight: "600" },
+  value: { color: TXT_PRI, fontSize: 14, fontWeight: "800" },
 });
 
 /* ═══════════════ RECOMMENDATION CARD ═══════════════ */
@@ -170,7 +179,7 @@ function RecoCard({ num, icon, title, desc, color }: { num: number; icon: string
         <Text style={rc.title}>{icon}  {title}</Text>
         <Text style={rc.desc}>{desc}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.35)" />
+      <Ionicons name="chevron-forward" size={18} color={TXT_SEC} />
     </View>
   );
 }
@@ -178,13 +187,14 @@ const rc = StyleSheet.create({
   card: {
     flexDirection: "row", alignItems: "center", gap: 14,
     backgroundColor: CARD_BG, borderRadius: 18,
-    borderWidth: 1, borderColor: BORD,
+    borderWidth: 1.5, borderColor: BORD,
     paddingVertical: 15, paddingHorizontal: 16,
+    shadowColor: "#9BB0E8", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 6, elevation: 3,
   },
   badge: { width: 32, height: 32, borderRadius: 10, justifyContent: "center", alignItems: "center", flexShrink: 0 },
   badgeTxt: { color: "#fff", fontSize: 15, fontWeight: "900" },
-  title: { color: "#fff", fontSize: 14, fontWeight: "800" },
-  desc: { color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 17, fontWeight: "500" },
+  title: { color: TXT_PRI, fontSize: 14, fontWeight: "800" },
+  desc: { color: TXT_SEC, fontSize: 12, lineHeight: 17, fontWeight: "500" },
 });
 
 /* ═══════════════ SHARE CARD (opaque for capture) ═══════════════ */
@@ -698,8 +708,8 @@ const s = StyleSheet.create({
     flex: 1, backgroundColor: CARD_BG2, borderRadius: 14, borderWidth: 1, borderColor: BORD,
     alignItems: "center", paddingVertical: 14,
   },
-  statVal: { fontSize: 22, fontWeight: "900", color: "#fff" },
-  statLbl: { fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: "600", marginTop: 2 },
+  statVal: { fontSize: 22, fontWeight: "900", color: TXT_PRI },
+  statLbl: { fontSize: 11, color: TXT_SEC, fontWeight: "600", marginTop: 2 },
 
   primaryBtn: {
     width: "100%", borderRadius: 20, overflow: "hidden",
@@ -732,11 +742,11 @@ const s = StyleSheet.create({
     width: "100%", backgroundColor: CARD_BG2, borderRadius: 22, padding: 22, gap: 12,
     borderWidth: 1, borderColor: BORD,
   },
-  loadTitle: { fontSize: 17, fontWeight: "800", color: "#fff", textAlign: "center" },
+  loadTitle: { fontSize: 17, fontWeight: "800", color: TXT_PRI, textAlign: "center" },
   loadDivider: { height: 1, backgroundColor: BORD },
   stageRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  stageDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.2)" },
-  stageTxt: { fontSize: 14, color: "rgba(255,255,255,0.45)", fontWeight: "600", flex: 1 },
+  stageDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(100,110,160,0.25)" },
+  stageTxt: { fontSize: 14, color: TXT_SEC, fontWeight: "600", flex: 1 },
 
   /* Result */
   resultWrap: { width: "100%", alignItems: "center", gap: 14, paddingTop: 4 },
@@ -753,8 +763,8 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 18, elevation: 14,
   },
   heroScoreRow: { flexDirection: "row", alignItems: "flex-end", gap: 4 },
-  heroNum: { fontSize: 68, fontWeight: "900", color: "#fff", lineHeight: 72 },
-  heroSlash: { color: "rgba(255,255,255,0.45)", fontSize: 20, fontWeight: "700", marginBottom: 10 },
+  heroNum: { fontSize: 68, fontWeight: "900", color: TXT_PRI, lineHeight: 72 },
+  heroSlash: { color: TXT_SEC, fontSize: 20, fontWeight: "700", marginBottom: 10 },
   tierPill: {
     flexDirection: "row", alignItems: "center", gap: 7,
     paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5,
@@ -764,7 +774,7 @@ const s = StyleSheet.create({
 
   secHeader: { width: "100%", gap: 1, marginTop: 4 },
   secTitle: { color: CORAL, fontSize: 12, fontWeight: "900", letterSpacing: 2 },
-  secSub: { color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: "500" },
+  secSub: { color: TXT_SEC, fontSize: 11, fontWeight: "500" },
 
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, width: "100%" },
   analysisList: { width: "100%", gap: 8 },
@@ -779,7 +789,7 @@ const s = StyleSheet.create({
 
   shareCardSection: { width: "100%", gap: 10 },
   shareCardLabelRow: { flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center" },
-  shareCardLabel: { color: "rgba(255,255,255,0.45)", fontSize: 10, fontWeight: "800", letterSpacing: 1.8 },
+  shareCardLabel: { color: TXT_SEC, fontSize: 10, fontWeight: "800", letterSpacing: 1.8 },
   shareCardOuter: {
     width: "100%", borderRadius: 20, overflow: "hidden",
     shadowColor: CORAL, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 14, elevation: 10,
