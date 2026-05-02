@@ -1,17 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Image,
-  Modal,
-  Platform,
-  Alert,
-  ScrollView,
-  Animated,
-  Dimensions,
-  ActivityIndicator,
+  View, Text, StyleSheet, Pressable, Image, Modal, Platform,
+  Alert, ScrollView, Animated, Dimensions, ActivityIndicator,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,238 +18,279 @@ import { playButtonSound } from "@/utils/soundUtils";
 type Props = NativeStackScreenProps<RootStackParamList, "Lookmaxing">;
 
 const { width: SW } = Dimensions.get("window");
-const CARD_W = Math.min(SW - 32, 420);
-const CARD_PINK = "#F86B6D";
-const SHADOW_PINK = "#D95657";
+const CW = Math.min(SW - 32, 420);
+const CARD_PINK  = "#F86B6D";
 
-interface ScorecardData {
-  masculinity: number; cheekBones: number; jawline: number;
-  eyes: number; hair: number; skin: number; overall: number;
+/* ── Palette ── */
+const BG   = "#08090F";
+const CARD = "#13141F";
+const CARD2= "#181926";
+const BORD = "rgba(255,255,255,0.07)";
+const GREEN= "#00FF88";
+const LIME = "#A4FF00";
+const GOLD = "#FFD600";
+const ORNG = "#FF6D00";
+const PINK2= "#FF4081";
+const PUR  = "#7B2FBE";
+
+/* ── Interfaces ── */
+interface Scores {
+  overall: number; potential: number; jawline: number;
+  cheekBones: number; eyes: number; masculinity: number;
 }
 
+interface FaceData {
+  canthalTilt: string; eyeShape: string; eyeType: string;
+  faceShape: string; jawWidth: string; noseShape: string;
+}
+
+/* ── Static data ── */
 const LOADING_STAGES = [
-  "Scanning face structure...",
-  "Measuring bone proportions...",
-  "Analyzing skin & texture...",
-  "Computing symmetry score...",
+  "Scanning face geometry...", "Measuring bone proportions...",
+  "Analyzing skin quality...", "Computing symmetry index...",
   "Generating your verdict...",
 ];
 
-const VERDICTS = [
-  { min: 9, label: "Certified Chad",  emoji: "🔱", color: "#00E676", dark: "#00A152", sub: "Top 5% worldwide. Pure genetics." },
-  { min: 8, label: "Top 10%",         emoji: "🔥", color: "#AEEA00", dark: "#6ab000", sub: "Consistently above average. Maximize it." },
-  { min: 7, label: "Above Average",   emoji: "✨", color: "#FFD600", dark: "#c7a500", sub: "Solid foundation. Glow-up is achievable." },
-  { min: 6, label: "Solid Baseline",  emoji: "💪", color: "#FF6D00", dark: "#c43c00", sub: "Good starting point. Room to grow." },
-  { min: 0, label: "Rising Star",     emoji: "🌱", color: "#FF4081", dark: "#c60055", sub: "Every legend started somewhere." },
+const CANTHAL  = ["Positive", "Neutral", "Slightly Positive", "Negative"];
+const EYE_SHP  = ["Almond Eyes", "Round Eyes", "Hooded Eyes", "Deep-Set", "Upturned"];
+const EYE_TYP  = ["Hunter Eyes", "Prey Eyes", "Neutral"];
+const FACE_SHP = ["Oval", "Heart", "Diamond", "Square", "Oblong", "Triangle"];
+const JAW_WID  = ["Wide & Angular", "Medium", "Narrow", "Strong"];
+const NOSE_SHP = ["Roman Nose", "Aquiline Nose", "Snub Nose", "Hawk Nose", "Greek Nose"];
+
+const RECOS = [
+  { icon: "💈", title: "Optimize your haircut", desc: "A properly styled cut adds 0.5–1 point to your facial harmony score.", color: "#FF6B35" },
+  { icon: "💧", title: "Start a skincare routine", desc: "Cleanser + SPF daily. Skin quality is the highest-weighted metric.", color: "#00CFA8" },
+  { icon: "🏋️", title: "Build facial muscle mass", desc: "Bulking phases define your jaw and cheekbones from the inside.", color: "#FF1744" },
+  { icon: "🧍", title: "Fix your posture now", desc: "Mewing + forward posture reshapes your lower third over time.", color: "#FF9800" },
+  { icon: "😁", title: "Whiten your teeth", desc: "Tooth color and alignment are major subconscious attraction triggers.", color: "#7C4DFF" },
+  { icon: "🌞", title: "SPF every morning", desc: "Prevents UV-induced aging — the single most impactful anti-aging move.", color: "#29B6F6" },
 ];
 
-const GLOW_TIPS = [
-  { icon: "💈", title: "Fresh haircut every 3–4 weeks",         desc: "Consistency keeps you polished even on lazy days.",                        impact: "🔥 High Impact", color: "#FF6B35" },
-  { icon: "💧", title: "3-step skincare: Cleanser → SPF",        desc: "SPF alone prevents aging better than any cream on the market.",           impact: "🔥 High Impact", color: "#00CFA8" },
-  { icon: "🏋️", title: "Gym 3–4x per week minimum",              desc: "Jaw gets more defined, face thins out, posture improves visibly.",        impact: "🔥 High Impact", color: "#FF1744" },
-  { icon: "🧍", title: "Fix your posture — right now",           desc: "Shoulders back, chest up. Instant height, dominance, attractiveness.",    impact: "✨ Quick Win",   color: "#FF9800" },
-  { icon: "😴", title: "Sleep 7–9 hours every night",            desc: "Sleep deprivation shows instantly in skin, eyes, and energy levels.",     impact: "🔥 High Impact", color: "#4CAF50" },
-  { icon: "🌞", title: "SPF 30+ every single morning",           desc: "UV is the #1 cause of premature aging. Apply even on cloudy days.",       impact: "🔥 High Impact", color: "#29B6F6" },
-  { icon: "😁", title: "Whiten your teeth this week",            desc: "Whitening strips for $20 deliver a celebrity smile. Best ROI possible.",  impact: "✨ Quick Win",   color: "#7C4DFF" },
-  { icon: "🤨", title: "Groom your eyebrows monthly",            desc: "Threading takes 20 min, lasts a month, and changes your whole face.",     impact: "✨ Quick Win",   color: "#E040A0" },
-  { icon: "💧", title: "Drink 3 liters of water daily",          desc: "Dehydration causes dull skin, dark circles, poor metabolism.",            impact: "✨ Quick Win",   color: "#29B6F6" },
-  { icon: "🌹", title: "Find your signature cologne",            desc: "Scent and memory share the same brain region. Be unforgettable.",         impact: "✨ Quick Win",   color: "#E040A0" },
-  { icon: "🥩", title: "1g protein per lb of bodyweight",        desc: "Muscle, hair, skin elasticity all require adequate protein.",             impact: "🔥 High Impact", color: "#FF9800" },
-  { icon: "🧴", title: "Retinol 2–3× per week at night",         desc: "Speeds cell turnover, reduces wrinkles. Gold standard of anti-aging.",   impact: "🔥 High Impact", color: "#00CFA8" },
-  { icon: "🪒", title: "Beard: full, maintained, or shaved clean", desc: "Patchy stubble is the enemy. Pick a lane and execute perfectly.",      impact: "✨ Quick Win",   color: "#E040A0" },
-];
+/* ── Helpers ── */
+const rnd = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
-const METRICS: { key: keyof ScorecardData; label: string; emoji: string }[] = [
-  { key: "masculinity", label: "Masculinity", emoji: "💪" },
-  { key: "cheekBones",  label: "Cheek Bones", emoji: "🧔" },
-  { key: "jawline",     label: "Jawline",     emoji: "👄" },
-  { key: "eyes",        label: "Eyes",        emoji: "👀" },
-  { key: "hair",        label: "Hair",        emoji: "💇" },
-  { key: "skin",        label: "Skin",        emoji: "💆" },
-];
-
-function rnd<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
-
-function genScore(): number {
+function gen100(): number {
   const r = Math.random();
-  if (r < 0.03) return 10;
-  if (r < 0.10) return 9;
-  if (r < 0.25) return 8;
-  if (r < 0.50) return 7;
-  if (r < 0.80) return 6;
-  return 5;
+  if (r < 0.02) return 90 + Math.floor(Math.random() * 10);
+  if (r < 0.12) return 80 + Math.floor(Math.random() * 10);
+  if (r < 0.35) return 70 + Math.floor(Math.random() * 10);
+  if (r < 0.65) return 60 + Math.floor(Math.random() * 10);
+  if (r < 0.88) return 50 + Math.floor(Math.random() * 10);
+  return 40 + Math.floor(Math.random() * 10);
 }
 
-function getVerdict(s: number) { return VERDICTS.find((v) => s >= v.min)!; }
+function getTier(s: number): { label: string; color: string } {
+  if (s >= 90) return { label: "Chad",              color: GREEN };
+  if (s >= 80) return { label: "Chadlite",          color: LIME  };
+  if (s >= 70) return { label: "High-Tier Normie",  color: GOLD  };
+  if (s >= 60) return { label: "Normie",            color: ORNG  };
+  return            { label: "Below Average",       color: PINK2 };
+}
 
-function scoreCol(s: number) {
-  if (s >= 9) return "#00E676";
-  if (s >= 8) return "#AEEA00";
-  if (s >= 7) return "#FFD600";
-  if (s >= 6) return "#FF6D00";
-  return "#FF4081";
+function barColor(s: number): string {
+  if (s >= 80) return GREEN;
+  if (s >= 70) return LIME;
+  if (s >= 60) return GOLD;
+  if (s >= 50) return ORNG;
+  return PINK2;
 }
 
 function haptic() {
   if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 }
 
-/* ─── Animated metric bar ─── */
-function MetricBar({ label, emoji, score, delay = 0 }: { label: string; emoji: string; score: number; delay?: number }) {
+/* ═══════════════ ANIMATED METRIC CARD ═══════════════ */
+function MetricCard({ label, score, delay = 0 }: { label: string; score: number; delay?: number }) {
   const anim = useRef(new Animated.Value(0)).current;
-  const col = scoreCol(score);
+  const tier = getTier(score);
+  const bc   = barColor(score);
 
   useEffect(() => {
-    Animated.timing(anim, { toValue: score / 10, duration: 800, delay, useNativeDriver: false }).start();
+    Animated.timing(anim, { toValue: score / 100, duration: 900, delay, useNativeDriver: false }).start();
   }, [score]);
 
   const width = anim.interpolate({ inputRange: [0, 1], outputRange: ["0%", "100%"] });
 
   return (
-    <View style={mb.row}>
-      <Text style={mb.emoji}>{emoji}</Text>
-      <Text style={mb.label}>{label}</Text>
-      <View style={mb.track}>
-        <Animated.View style={[mb.fill, { width, backgroundColor: col, shadowColor: col }]} />
+    <View style={mc.card}>
+      <Text style={[mc.label, { color: bc }]}>{label.toUpperCase()}</Text>
+      <Text style={mc.score}>{score}</Text>
+      <View style={mc.tierRow}>
+        <View style={[mc.dot, { backgroundColor: bc }]} />
+        <Text style={[mc.tierTxt, { color: "rgba(255,255,255,0.5)" }]}>{tier.label}</Text>
       </View>
-      <Text style={[mb.num, { color: col }]}>{score}/10</Text>
+      <View style={mc.barTrack}>
+        <Animated.View style={[mc.barFill, { width, backgroundColor: bc, shadowColor: bc }]} />
+      </View>
     </View>
   );
 }
-const mb = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 10 },
-  emoji: { fontSize: 20, width: 26 },
-  label: { color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: "700", width: 92 },
-  track: { flex: 1, height: 10, backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 5, overflow: "hidden" },
-  fill: { height: "100%", borderRadius: 5, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 4, elevation: 3 },
-  num: { fontSize: 13, fontWeight: "900", width: 40, textAlign: "right" },
+const mc = StyleSheet.create({
+  card: {
+    width: (CW - 12) / 2, backgroundColor: CARD, borderRadius: 20,
+    borderWidth: 1, borderColor: BORD,
+    padding: 16, gap: 6,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  label: { fontSize: 11, fontWeight: "800", letterSpacing: 1.2, marginBottom: 2 },
+  score: { fontSize: 48, fontWeight: "900", color: "#fff", lineHeight: 52 },
+  tierRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  dot: { width: 7, height: 7, borderRadius: 4 },
+  tierTxt: { fontSize: 11, fontWeight: "600" },
+  barTrack: { height: 5, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden", marginTop: 4 },
+  barFill: { height: "100%", borderRadius: 3, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 6, elevation: 2 },
 });
 
-/* ─── Static share card (no transparency — required for clean screenshot capture) ─── */
-function ShareCard({ photoUri, scores, verdict }: { photoUri: string | null; scores: ScorecardData; verdict: ReturnType<typeof getVerdict> }) {
+/* ═══════════════ ANALYSIS ROW ═══════════════ */
+function AnalysisRow({ label, value }: { label: string; value: string }) {
   return (
-    <LinearGradient colors={["#FF7A26", "#E8115A", "#7B0EA0"]} start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 1 }} style={sc.card}>
-      {/* Brand header */}
-      <View style={sc.brandRow}>
-        <Text style={sc.brandIcon}>🔥</Text>
-        <Text style={sc.brandName}>Rizz AI</Text>
-        <Text style={sc.brandTag}>LOOK SCORE</Text>
+    <View style={ar.row}>
+      <Text style={ar.label}>{label}</Text>
+      <Text style={ar.value}>{value}</Text>
+    </View>
+  );
+}
+const ar = StyleSheet.create({
+  row: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    backgroundColor: CARD, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 18,
+    borderWidth: 1, borderColor: BORD,
+  },
+  label: { color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: "600" },
+  value: { color: "#fff", fontSize: 14, fontWeight: "800" },
+});
+
+/* ═══════════════ RECOMMENDATION CARD ═══════════════ */
+function RecoCard({ num, icon, title, desc, color }: { num: number; icon: string; title: string; desc: string; color: string }) {
+  return (
+    <View style={rc.card}>
+      <View style={[rc.numBadge, { backgroundColor: color }]}>
+        <Text style={rc.numTxt}>{num}</Text>
       </View>
+      <View style={{ flex: 1, gap: 4 }}>
+        <Text style={rc.title}>{icon}  {title}</Text>
+        <Text style={rc.desc}>{desc}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.25)" />
+    </View>
+  );
+}
+const rc = StyleSheet.create({
+  card: {
+    flexDirection: "row", alignItems: "center", gap: 14,
+    backgroundColor: CARD, borderRadius: 18,
+    borderWidth: 1, borderColor: BORD,
+    paddingVertical: 16, paddingHorizontal: 16,
+  },
+  numBadge: {
+    width: 32, height: 32, borderRadius: 10, justifyContent: "center", alignItems: "center", flexShrink: 0,
+  },
+  numTxt: { color: "#fff", fontSize: 15, fontWeight: "900" },
+  title: { color: "#fff", fontSize: 14, fontWeight: "800" },
+  desc: { color: "rgba(255,255,255,0.45)", fontSize: 12, lineHeight: 17, fontWeight: "500" },
+});
 
+/* ═══════════════ SHAREABLE CARD (no transparency) ═══════════════ */
+function ShareCard({ photoUri, scores }: { photoUri: string | null; scores: Scores }) {
+  const overall = getTier(scores.overall);
+  const metrics = [
+    { label: "OVERALL",     score: scores.overall     },
+    { label: "POTENTIAL",   score: scores.potential   },
+    { label: "JAWLINE",     score: scores.jawline     },
+    { label: "CHEEKBONES",  score: scores.cheekBones  },
+    { label: "EYES",        score: scores.eyes        },
+    { label: "MASCULINITY", score: scores.masculinity },
+  ];
+  return (
+    <LinearGradient colors={["#0A0A14", "#0F0F22", "#0A0A14"]} style={scard.wrap}>
+      {/* Brand */}
+      <View style={scard.brandRow}>
+        <Text style={scard.brandFire}>🔥</Text>
+        <Text style={scard.brandName}>Rizz AI · Look Score</Text>
+      </View>
       {/* Photo + score */}
-      <View style={sc.photoRow}>
-        {photoUri ? (
-          <View style={sc.photoWrap}>
-            <Image source={{ uri: photoUri }} style={sc.photo} />
-          </View>
-        ) : (
-          <View style={[sc.photoWrap, { backgroundColor: "rgba(255,255,255,0.15)", justifyContent: "center", alignItems: "center" }]}>
-            <Text style={{ fontSize: 40 }}>👤</Text>
-          </View>
-        )}
-
-        <View style={sc.scoreCol}>
-          <View style={[sc.scoreBig, { borderColor: verdict.color }]}>
-            <Text style={[sc.scoreNum, { color: verdict.color }]}>{scores.overall}</Text>
-            <Text style={sc.scoreSlash}>/10</Text>
-          </View>
-          <View style={[sc.verdictPill, { backgroundColor: verdict.color }]}>
-            <Text style={sc.verdictPillText}>{verdict.emoji} {verdict.label}</Text>
-          </View>
-          {/* Stars */}
-          <View style={sc.starsRow}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Text key={i} style={{ fontSize: 14, color: i <= Math.round(scores.overall / 2) ? verdict.color : "rgba(255,255,255,0.3)" }}>★</Text>
-            ))}
+      <View style={scard.photoRow}>
+        <View style={[scard.photoRing, { borderColor: overall.color }]}>
+          {photoUri
+            ? <Image source={{ uri: photoUri }} style={scard.photo} />
+            : <View style={[scard.photo, { backgroundColor: "#1a1a2e", justifyContent: "center", alignItems: "center" }]}><Text style={{ fontSize: 36 }}>👤</Text></View>}
+        </View>
+        <View style={scard.overallCol}>
+          <Text style={scard.overallNum}>{scores.overall}</Text>
+          <Text style={scard.outOf}>/100</Text>
+          <View style={[scard.tierBadge, { backgroundColor: overall.color + "25", borderColor: overall.color }]}>
+            <Text style={[scard.tierBadgeTxt, { color: overall.color }]}>{overall.label}</Text>
           </View>
         </View>
       </View>
-
-      {/* Divider */}
-      <View style={sc.divider} />
-
-      {/* Metrics */}
-      <View style={sc.metricsList}>
-        {METRICS.map((m, idx) => {
-          const s = scores[m.key];
-          const c = scoreCol(s);
-          const pct = (s / 10) * 100;
+      {/* Grid */}
+      <View style={scard.grid}>
+        {metrics.map((m) => {
+          const bc2 = barColor(m.score);
           return (
-            <View key={m.key} style={sc.metricRow}>
-              <Text style={sc.mEmoji}>{m.emoji}</Text>
-              <Text style={sc.mLabel}>{m.label}</Text>
-              <View style={sc.mTrack}>
-                <View style={[sc.mFill, { width: `${pct}%` as any, backgroundColor: c }]} />
+            <View key={m.label} style={scard.gridCard}>
+              <Text style={[scard.gridLabel, { color: bc2 }]}>{m.label}</Text>
+              <Text style={scard.gridScore}>{m.score}</Text>
+              <View style={scard.gridTrack}>
+                <View style={[scard.gridFill, { width: `${m.score}%` as any, backgroundColor: bc2 }]} />
               </View>
-              <Text style={[sc.mNum, { color: c }]}>{s}/10</Text>
             </View>
           );
         })}
       </View>
-
       {/* Watermark */}
-      <View style={sc.watermark}>
-        <Text style={sc.watermarkText}>rizz-ai.app · get yours free</Text>
-      </View>
+      <Text style={scard.wm}>get yours free · rizz-ai.app</Text>
     </LinearGradient>
   );
 }
-const sc = StyleSheet.create({
-  card: { borderRadius: 24, padding: 20, gap: 14, width: "100%" },
+const scard = StyleSheet.create({
+  wrap: { borderRadius: 20, padding: 18, gap: 16 },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  brandIcon: { fontSize: 20 },
-  brandName: { color: "#fff", fontSize: 20, fontWeight: "900", flex: 1 },
-  brandTag: { color: "rgba(255,255,255,0.6)", fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
-  photoRow: { flexDirection: "row", gap: 14, alignItems: "center" },
-  photoWrap: { width: 120, height: 120, borderRadius: 18, overflow: "hidden", borderWidth: 3, borderColor: "rgba(255,255,255,0.4)" },
+  brandFire: { fontSize: 18 },
+  brandName: { color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: "700", letterSpacing: 0.5 },
+  photoRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  photoRing: { width: 90, height: 90, borderRadius: 45, borderWidth: 3, overflow: "hidden", flexShrink: 0 },
   photo: { width: "100%", height: "100%", resizeMode: "cover" },
-  scoreCol: { flex: 1, alignItems: "center", gap: 8 },
-  scoreBig: {
-    width: 80, height: 80, borderRadius: 40, borderWidth: 3,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center", alignItems: "center", flexDirection: "row",
-  },
-  scoreNum: { fontSize: 30, fontWeight: "900" },
-  scoreSlash: { color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: "700", marginBottom: 4, alignSelf: "flex-end" },
-  verdictPill: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  verdictPillText: { color: "#000", fontSize: 12, fontWeight: "800" },
-  starsRow: { flexDirection: "row", gap: 2 },
-  divider: { height: 1, backgroundColor: "rgba(255,255,255,0.2)" },
-  metricsList: { gap: 10 },
-  metricRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  mEmoji: { fontSize: 16, width: 22 },
-  mLabel: { color: "rgba(255,255,255,0.9)", fontSize: 12, fontWeight: "700", width: 82 },
-  mTrack: { flex: 1, height: 8, backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 4, overflow: "hidden" },
-  mFill: { height: "100%", borderRadius: 4 },
-  mNum: { fontSize: 12, fontWeight: "900", width: 36, textAlign: "right" },
-  watermark: { alignItems: "center", marginTop: 2 },
-  watermarkText: { color: "rgba(255,255,255,0.45)", fontSize: 10, fontWeight: "600", letterSpacing: 0.5 },
+  overallCol: { flex: 1, alignItems: "flex-start", gap: 6 },
+  overallNum: { fontSize: 52, fontWeight: "900", color: "#fff", lineHeight: 54 },
+  outOf: { color: "rgba(255,255,255,0.4)", fontSize: 14, fontWeight: "700", marginTop: -8 },
+  tierBadge: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4 },
+  tierBadgeTxt: { fontSize: 12, fontWeight: "800" },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  gridCard: { width: "47%", backgroundColor: "#1C1D2E", borderRadius: 12, padding: 12, gap: 4 },
+  gridLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  gridScore: { fontSize: 28, fontWeight: "900", color: "#fff", lineHeight: 32 },
+  gridTrack: { height: 4, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden" },
+  gridFill: { height: "100%", borderRadius: 2 },
+  wm: { color: "rgba(255,255,255,0.25)", fontSize: 10, fontWeight: "600", letterSpacing: 0.5, textAlign: "center" },
 });
 
-/* ═══════════════════════════════════ MAIN SCREEN ═══════════════════════════════════ */
+/* ═══════════════ MAIN SCREEN ═══════════════ */
 export default function LookmaxingScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
 
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"upload" | "loading" | "result">("upload");
-  const [loadingStage, setLoadingStage] = useState(0);
-  const [scores, setScores] = useState<ScorecardData | null>(null);
-  const [tip, setTip] = useState(rnd(GLOW_TIPS));
-  const [sharing, setSharing] = useState(false);
-  const [showWebCam, setShowWebCam] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
+  const [photoUri,    setPhotoUri]    = useState<string | null>(null);
+  const [phase,       setPhase]       = useState<"upload"|"loading"|"result">("upload");
+  const [loadStage,   setLoadStage]   = useState(0);
+  const [scores,      setScores]      = useState<Scores | null>(null);
+  const [faceData,    setFaceData]    = useState<FaceData | null>(null);
+  const [recos,       setRecos]       = useState(RECOS.slice(0, 4));
+  const [sharing,     setSharing]     = useState(false);
+  const [showWebCam,  setShowWebCam]  = useState(false);
+  const [permission,  reqPermission]  = useCameraPermissions();
 
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
-  const shareCardRef = useRef<View>(null);
-  const cameraRef = useRef<CameraView>(null);
+  const pulseAnim  = useRef(new Animated.Value(1)).current;
+  const fadeAnim   = useRef(new Animated.Value(0)).current;
+  const shareRef   = useRef<View>(null);
+  const cameraRef  = useRef<CameraView>(null);
 
   /* Pulse while loading */
   useEffect(() => {
     if (phase !== "loading") return;
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.06, duration: 600, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.07, duration: 600, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1,    duration: 600, useNativeDriver: true }),
       ])
     );
@@ -271,7 +302,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
   useEffect(() => {
     if (phase === "result") {
       fadeAnim.setValue(0);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     }
   }, [phase]);
 
@@ -279,15 +310,29 @@ export default function LookmaxingScreen({ navigation }: Props) {
     setPhase("loading");
     setScores(null);
     for (let i = 0; i < LOADING_STAGES.length; i++) {
-      setLoadingStage(i);
-      await new Promise((r) => setTimeout(r, 480));
+      setLoadStage(i);
+      await new Promise((r) => setTimeout(r, 500));
     }
     haptic();
+    const overall = gen100();
     setScores({
-      masculinity: genScore(), cheekBones: genScore(), jawline: genScore(),
-      eyes: genScore(), hair: genScore(), skin: genScore(), overall: genScore(),
+      overall,
+      potential:   Math.min(100, overall + 5 + Math.floor(Math.random() * 12)),
+      jawline:     gen100(),
+      cheekBones:  gen100(),
+      eyes:        gen100(),
+      masculinity: gen100(),
     });
-    setTip(rnd(GLOW_TIPS));
+    setFaceData({
+      canthalTilt: rnd(CANTHAL),
+      eyeShape:    rnd(EYE_SHP),
+      eyeType:     rnd(EYE_TYP),
+      faceShape:   rnd(FACE_SHP),
+      jawWidth:    rnd(JAW_WID),
+      noseShape:   rnd(NOSE_SHP),
+    });
+    const shuffled = [...RECOS].sort(() => Math.random() - 0.5);
+    setRecos(shuffled.slice(0, 4));
     setPhase("result");
   };
 
@@ -295,7 +340,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
     try {
       const p = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!p.granted) { if (Platform.OS !== "web") Alert.alert("Permission Required", "Allow photo library access."); return; }
-      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"] as any, allowsEditing: true, aspect: [1, 1], quality: 0.85 });
+      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"] as any, allowsEditing: true, aspect: [1,1], quality: 0.9 });
       if (r.assets?.[0]) { setPhotoUri(r.assets[0].uri); runAnalysis(); }
     } catch { setPhase("upload"); }
   };
@@ -303,7 +348,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
   const handleTakeSelfie = async () => {
     if (Platform.OS === "web") {
       if (!permission?.granted) {
-        const r = await requestPermission();
+        const r = await reqPermission();
         if (!r.granted) { Alert.alert("Permission Required", "Allow camera access."); return; }
       }
       setShowWebCam(true);
@@ -312,7 +357,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
     try {
       const p = await ImagePicker.requestCameraPermissionsAsync();
       if (!p.granted) { Alert.alert("Permission Required", "Allow camera access."); return; }
-      const r = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"] as any, allowsEditing: true, aspect: [1, 1], quality: 0.85, cameraType: ImagePicker.CameraType.front });
+      const r = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"] as any, allowsEditing: true, aspect: [1,1], quality: 0.9, cameraType: ImagePicker.CameraType.front });
       if (r.assets?.[0]) { setPhotoUri(r.assets[0].uri); runAnalysis(); }
     } catch { setPhase("upload"); }
   };
@@ -325,437 +370,449 @@ export default function LookmaxingScreen({ navigation }: Props) {
     } catch {}
   };
 
-  /* ── Share: capture the card then open native share sheet ── */
   const handleShare = async () => {
-    if (!shareCardRef.current || sharing) return;
+    if (!shareRef.current || sharing) return;
     try {
       setSharing(true);
       await playButtonSound();
-      // Give React a frame to render before capture
-      await new Promise((r) => setTimeout(r, 100));
-      const uri = await captureRef(shareCardRef, { format: "png", quality: 1 });
+      await new Promise((r) => setTimeout(r, 120));
+      const uri = await captureRef(shareRef, { format: "png", quality: 1 });
 
       if (Platform.OS === "web") {
-        // Web Share API
         try {
           const blob = await (await fetch(uri)).blob();
           const file = new File([blob], "rizz-ai-score.png", { type: "image/png" });
           if ((navigator as any).share && (navigator as any).canShare?.({ files: [file] })) {
             await (navigator as any).share({ files: [file], title: "My Rizz AI Look Score" });
           } else {
-            // Fallback: download the image
             const a = document.createElement("a");
-            a.href = uri;
-            a.download = "rizz-ai-score.png";
-            a.click();
+            a.href = uri; a.download = "rizz-ai-score.png"; a.click();
           }
         } catch {}
       } else {
         const ok = await Sharing.isAvailableAsync();
-        if (ok) {
-          await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Share your Rizz AI Look Score" });
-        }
+        if (ok) await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Share your Look Score" });
       }
-    } catch (e) {
-      console.log("Share error:", e);
-    } finally {
-      setSharing(false);
-    }
+    } catch (e) { console.log("Share error:", e); }
+    finally { setSharing(false); }
   };
 
-  const handleReset = () => { setPhotoUri(null); setScores(null); setPhase("upload"); };
+  const handleReset = () => { setPhotoUri(null); setScores(null); setFaceData(null); setPhase("upload"); };
 
-  const verdict = scores ? getVerdict(scores.overall) : null;
-  const oColor  = scores ? scoreCol(scores.overall) : "#fff";
+  const tier = scores ? getTier(scores.overall) : null;
 
   return (
-    <LinearGradient colors={["#A8BEF0", "#8BAEE8", "#BAD0FC"]} style={styles.root}>
+    <View style={s.root}>
+      {/* Subtle purple glow at top */}
+      <LinearGradient
+        colors={["rgba(123,47,190,0.35)", "transparent"]}
+        style={s.topGlow}
+        start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
+      />
+
       {/* Webcam modal */}
       <Modal visible={showWebCam} transparent={false} animationType="slide">
         <View style={{ flex: 1, backgroundColor: "#000" }}>
           <CameraView style={{ flex: 1 }} ref={cameraRef} facing="front" />
-          <View style={styles.camControls}>
-            <Pressable style={[styles.camBtn, { backgroundColor: "#333" }]} onPress={() => setShowWebCam(false)}>
-              <Text style={styles.camBtnTxt}>Cancel</Text>
+          <View style={s.camRow}>
+            <Pressable style={[s.camBtn, { backgroundColor: "#333" }]} onPress={() => setShowWebCam(false)}>
+              <Text style={s.camBtnTxt}>Cancel</Text>
             </Pressable>
-            <Pressable style={[styles.camBtn, { backgroundColor: CARD_PINK }]} onPress={captureWebcam}>
+            <Pressable style={[s.camBtn, { backgroundColor: PUR }]} onPress={captureWebcam}>
               <Ionicons name="camera" size={20} color="#fff" />
-              <Text style={styles.camBtnTxt}>Capture</Text>
+              <Text style={s.camBtnTxt}>Capture</Text>
             </Pressable>
           </View>
         </View>
       </Modal>
 
       {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <Pressable style={styles.backBtn} onPress={async () => { await playButtonSound(); navigation.goBack(); }}>
-          <Ionicons name="chevron-back" size={26} color={CARD_PINK} />
+      <View style={[s.header, { paddingTop: insets.top + 10 }]}>
+        <Pressable style={s.backBtn} onPress={async () => { await playButtonSound(); navigation.goBack(); }}>
+          <Ionicons name="chevron-back" size={24} color="#fff" />
         </Pressable>
-        <Text style={styles.headerTitle}>Lookmaxing</Text>
+        <Text style={s.headerTitle}>Look Score</Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 44 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 48 }]}
+        showsVerticalScrollIndicator={false}
+      >
 
-        {/* ════════════════ UPLOAD ════════════════ */}
+        {/* ══════════════════════════ UPLOAD ══════════════════════════ */}
         {phase === "upload" && (
-          <View style={styles.uploadWrap}>
-            {/* Hero */}
-            <LinearGradient colors={["#FF8C42", "#F2226B"]} style={styles.heroBox} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-              <MaterialCommunityIcons name="face-man-shimmer" size={56} color="#fff" />
-            </LinearGradient>
-            <Text style={styles.heroTitle}>Get Your Look Score</Text>
-            <Text style={styles.heroSub}>AI analyzes 6 attractiveness metrics and gives you an honest score out of 10</Text>
-
-            {/* Viewfinder frame */}
-            <View style={styles.viewfinder}>
-              <View style={[styles.corner, styles.cornerTL]} />
-              <View style={[styles.corner, styles.cornerTR]} />
-              <View style={[styles.corner, styles.cornerBL]} />
-              <View style={[styles.corner, styles.cornerBR]} />
-              <Ionicons name="person-outline" size={64} color="rgba(248,107,109,0.3)" />
-              <Text style={styles.viewfinderLabel}>Your photo appears here</Text>
+          <View style={s.uploadWrap}>
+            {/* Purple glow icon */}
+            <View style={s.heroIconWrap}>
+              <LinearGradient colors={[PUR, "#5B0EBF"]} style={s.heroIconBg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                <MaterialCommunityIcons name="face-man-shimmer" size={56} color="#fff" />
+              </LinearGradient>
+              <View style={s.heroIconGlow} />
             </View>
 
-            {/* Pills */}
-            <View style={styles.pillRow}>
-              {["🔒 Private", "📴 Offline", "⚡ Instant"].map((t) => (
-                <View key={t} style={styles.pill}><Text style={styles.pillTxt}>{t}</Text></View>
+            <Text style={s.uploadTitle}>Get Your Ratings</Text>
+            <Text style={s.uploadSub}>AI analyzes 6 facial metrics and gives you an honest attractiveness score</Text>
+
+            {/* Camera frame */}
+            <View style={s.frameBox}>
+              <View style={[s.corner, s.cTL]} /><View style={[s.corner, s.cTR]} />
+              <View style={[s.corner, s.cBL]} /><View style={[s.corner, s.cBR]} />
+              <MaterialCommunityIcons name="face-recognition" size={64} color="rgba(123,47,190,0.35)" />
+              <Text style={s.frameTxt}>Position your face here</Text>
+            </View>
+
+            {/* Stats row */}
+            <View style={s.statsRow}>
+              {[["6", "Metrics"], ["100", "Max Score"], ["0%", "Data Sent"]].map(([v, l]) => (
+                <View key={l} style={s.statBox}>
+                  <Text style={s.statVal}>{v}</Text>
+                  <Text style={s.statLbl}>{l}</Text>
+                </View>
               ))}
             </View>
 
-            {/* Primary button */}
-            <Pressable style={styles.primaryBtnWrap} onPress={async () => { await playButtonSound(); handleUploadPhoto(); }}>
-              <LinearGradient colors={["#FF8C42", "#F2226B"]} style={styles.primaryBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            {/* Buttons */}
+            <Pressable style={s.primaryBtn} onPress={async () => { await playButtonSound(); handleUploadPhoto(); }}>
+              <LinearGradient colors={[PUR, "#5B0EBF"]} style={s.primaryBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <Ionicons name="image" size={22} color="#fff" />
-                <Text style={styles.primaryBtnTxt}>Upload Photo</Text>
+                <Text style={s.primaryBtnTxt}>Upload Photo</Text>
               </LinearGradient>
             </Pressable>
 
-            {/* Secondary button */}
-            <Pressable style={styles.secondaryBtn} onPress={async () => { await playButtonSound(); handleTakeSelfie(); }}>
-              <View style={styles.secondaryBtnInner}>
-                <Ionicons name="camera" size={20} color={CARD_PINK} />
-                <Text style={styles.secondaryBtnTxt}>Take a Selfie</Text>
-              </View>
+            <Pressable style={s.secondaryBtn} onPress={async () => { await playButtonSound(); handleTakeSelfie(); }}>
+              <Ionicons name="camera" size={20} color={GREEN} />
+              <Text style={[s.secondaryBtnTxt, { color: GREEN }]}>Take a Selfie</Text>
             </Pressable>
           </View>
         )}
 
-        {/* ════════════════ LOADING ════════════════ */}
+        {/* ══════════════════════════ LOADING ══════════════════════════ */}
         {phase === "loading" && (
-          <View style={styles.loadingWrap}>
+          <View style={s.loadWrap}>
             {photoUri && (
-              <Animated.View style={[styles.loadPhotoFrame, { transform: [{ scale: pulseAnim }] }]}>
-                <Image source={{ uri: photoUri }} style={styles.loadPhoto} />
-                <LinearGradient colors={["transparent", "rgba(248,107,109,0.7)"]} style={StyleSheet.absoluteFillObject} />
-                <View style={styles.scanOverlay}>
-                  <Ionicons name="scan" size={36} color="rgba(255,255,255,0.85)" />
+              <Animated.View style={[s.loadPhotoRing, { transform: [{ scale: pulseAnim }] }]}>
+                <Image source={{ uri: photoUri }} style={s.loadPhoto} />
+                <View style={s.loadPhotoOverlay}>
+                  <Ionicons name="scan" size={40} color="rgba(123,47,190,0.8)" />
                 </View>
               </Animated.View>
             )}
 
-            <View style={styles.loadCard}>
-              <Text style={styles.loadCardTitle}>🧠  AI Analyzing Your Photo</Text>
-              <View style={styles.loadCardDivider} />
-              {LOADING_STAGES.map((s, i) => (
-                <View key={s} style={styles.stageRow}>
-                  <View style={[styles.stageDot, i < loadingStage && { backgroundColor: "#4CAF50" }, i === loadingStage && { backgroundColor: CARD_PINK }]} />
-                  <Text style={[styles.stageTxt, i === loadingStage && { color: "#111", fontWeight: "800" }, i < loadingStage && { color: "#4CAF50", textDecorationLine: "line-through" }]}>{s}</Text>
-                  {i < loadingStage && <Ionicons name="checkmark-circle" size={16} color="#4CAF50" style={{ marginLeft: "auto" }} />}
-                  {i === loadingStage && <ActivityIndicator size={14} color={CARD_PINK} style={{ marginLeft: "auto" }} />}
+            <View style={s.loadCard}>
+              <Text style={s.loadCardTitle}>Analyzing your face...</Text>
+              <View style={s.loadCardDivider} />
+              {LOADING_STAGES.map((stage, i) => (
+                <View key={stage} style={s.stageRow}>
+                  <View style={[s.stageDot,
+                    i < loadStage && { backgroundColor: GREEN },
+                    i === loadStage && { backgroundColor: PUR }
+                  ]} />
+                  <Text style={[s.stageTxt,
+                    i === loadStage && { color: "#fff", fontWeight: "700" },
+                    i < loadStage && { color: GREEN, textDecorationLine: "line-through" as const },
+                  ]}>{stage}</Text>
+                  {i < loadStage && <Ionicons name="checkmark-circle" size={16} color={GREEN} style={{ marginLeft: "auto" }} />}
+                  {i === loadStage && <ActivityIndicator size={14} color={PUR} style={{ marginLeft: "auto" }} />}
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* ════════════════ RESULT ════════════════ */}
-        {phase === "result" && scores && verdict && (
-          <Animated.View style={[styles.resultWrap, { opacity: fadeAnim }]}>
+        {/* ══════════════════════════ RESULT ══════════════════════════ */}
+        {phase === "result" && scores && faceData && tier && (
+          <Animated.View style={[s.resultWrap, { opacity: fadeAnim }]}>
 
-            {/* ── SCORE HERO ── */}
-            <View style={[styles.scoreHero, { shadowColor: oColor }]}>
-              {photoUri
-                ? <Image source={{ uri: photoUri }} style={styles.heroPhoto} />
-                : <LinearGradient colors={["#2a1050", "#1a082e"]} style={styles.heroPhoto} />
-              }
-              {/* Dark gradient over photo */}
-              <LinearGradient colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.85)"]} style={styles.heroPhotoGrad} />
-
-              {/* Score ring — top right */}
-              <View style={[styles.scoreRingOuter, { borderColor: oColor + "50", shadowColor: oColor }]}>
-                <View style={[styles.scoreRingInner, { borderColor: oColor }]}>
-                  <Text style={[styles.scoreNum, { color: oColor }]}>{scores.overall}</Text>
-                  <Text style={styles.scoreSlash}>/10</Text>
+            {/* ── HERO: Photo + Overall ── */}
+            <View style={s.heroSection}>
+              {/* Photo in glowing ring */}
+              <View style={s.photoRingOuter}>
+                <View style={[s.photoRingInner, { borderColor: tier.color }]}>
+                  {photoUri
+                    ? <Image source={{ uri: photoUri }} style={s.heroPhoto} />
+                    : <View style={[s.heroPhoto, { backgroundColor: CARD2, justifyContent: "center", alignItems: "center" }]}>
+                        <Text style={{ fontSize: 52 }}>👤</Text>
+                      </View>
+                  }
                 </View>
+                {/* Glow ring behind */}
+                <View style={[s.photoGlowRing, { shadowColor: tier.color, borderColor: tier.color + "30" }]} />
               </View>
 
-              {/* Verdict overlay — bottom */}
-              <View style={styles.heroVerdictWrap}>
-                <View style={[styles.verdictBadge, { backgroundColor: oColor }]}>
-                  <Text style={styles.verdictBadgeTxt}>{verdict.emoji}  {verdict.label}</Text>
+              {/* Overall score below photo */}
+              <View style={s.heroScoreRow}>
+                <Text style={s.heroScoreNum}>{scores.overall}</Text>
+                <View style={{ justifyContent: "flex-end", marginBottom: 8 }}>
+                  <Text style={s.heroScoreLabel}>/100</Text>
                 </View>
-                <View style={styles.starsRow}>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Ionicons key={i} name={i <= Math.round(scores.overall / 2) ? "star" : "star-outline"} size={19}
-                      color={i <= Math.round(scores.overall / 2) ? oColor : "rgba(255,255,255,0.3)"} />
-                  ))}
-                </View>
-                <Text style={styles.verdictSub}>{verdict.sub}</Text>
+              </View>
+              <View style={[s.tierPill, { backgroundColor: tier.color + "22", borderColor: tier.color }]}>
+                <View style={[s.tierDot, { backgroundColor: tier.color }]} />
+                <Text style={[s.tierLabel, { color: tier.color }]}>{tier.label}</Text>
               </View>
             </View>
 
-            {/* ── ANIMATED BREAKDOWN (interactive, non-captured) ── */}
-            <LinearGradient colors={["#FF7A26", "#E8115A", "#9C0FAA"]} start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.breakdownCard}>
-              <View style={styles.bdHeader}>
-                <Text style={styles.bdTitle}>Look Breakdown</Text>
-                <View style={[styles.bdOverallBadge, { borderColor: oColor }]}>
-                  <Text style={[styles.bdOverallNum, { color: oColor }]}>{scores.overall}</Text>
-                  <Text style={styles.bdOverallSlash}>/10</Text>
-                </View>
-              </View>
-              <View style={styles.bdDivider} />
-              <View style={styles.bdList}>
-                {METRICS.map((m, i) => (
-                  <MetricBar key={m.key} label={m.label} emoji={m.emoji} score={scores[m.key]} delay={i * 80} />
-                ))}
-              </View>
-            </LinearGradient>
+            {/* ── SECTION HEADER: Your Ratings ── */}
+            <View style={s.sectionHeader}>
+              <Text style={s.sectionTitle}>YOUR RATINGS</Text>
+              <Text style={s.sectionSub}>tap to share with friends</Text>
+            </View>
 
-            {/* ── SHAREABLE CARD (captured for WhatsApp / IG / Snapchat) ── */}
-            <View style={styles.shareCardSection}>
-              <View style={styles.shareCardLabelRow}>
-                <Ionicons name="share-social" size={14} color="rgba(0,0,0,0.4)" />
-                <Text style={styles.shareCardLabel}>TAP A BUTTON BELOW TO SHARE THIS CARD</Text>
-              </View>
+            {/* ── 2×3 METRIC CARD GRID ── */}
+            <View style={s.grid}>
+              {[
+                { label: "Overall",     score: scores.overall,     delay: 0   },
+                { label: "Potential",   score: scores.potential,   delay: 80  },
+                { label: "Jawline",     score: scores.jawline,     delay: 160 },
+                { label: "Cheekbones", score: scores.cheekBones,  delay: 240 },
+                { label: "Eyes",        score: scores.eyes,        delay: 320 },
+                { label: "Masculinity", score: scores.masculinity, delay: 400 },
+              ].map((m) => <MetricCard key={m.label} {...m} />)}
+            </View>
 
-              <View ref={shareCardRef} collapsable={false} style={styles.shareCardOuter}>
-                <ShareCard photoUri={photoUri} scores={scores} verdict={verdict} />
+            {/* ── SECTION HEADER: Your Analysis ── */}
+            <View style={s.sectionHeader}>
+              <Text style={s.sectionTitle}>YOUR ANALYSIS</Text>
+              <Text style={s.sectionSub}>facial structure breakdown</Text>
+            </View>
+
+            {/* ── FACE ANALYSIS ── */}
+            <View style={s.analysisList}>
+              <AnalysisRow label="Canthal Tilt"       value={faceData.canthalTilt} />
+              <AnalysisRow label="Eye Shape"          value={faceData.eyeShape}    />
+              <AnalysisRow label="Eye Type"           value={faceData.eyeType}     />
+              <AnalysisRow label="Face Shape"         value={faceData.faceShape}   />
+              <AnalysisRow label="Jaw Width"          value={faceData.jawWidth}    />
+              <AnalysisRow label="Nose Shape"         value={faceData.noseShape}   />
+            </View>
+
+            {/* ── SECTION HEADER: Your Recommendations ── */}
+            <View style={s.sectionHeader}>
+              <Text style={s.sectionTitle}>YOUR RECOMMENDATIONS</Text>
+              <Text style={s.sectionSub}>personalized for your ratings</Text>
+            </View>
+
+            {/* ── RECOMMENDATIONS ── */}
+            <View style={s.recoList}>
+              {recos.map((r, i) => (
+                <RecoCard key={r.title} num={i + 1} icon={r.icon} title={r.title} desc={r.desc} color={r.color} />
+              ))}
+            </View>
+
+            <Pressable
+              style={s.tipsBtn}
+              onPress={async () => { await playButtonSound(); navigation.navigate("LookmaxingTips"); }}
+            >
+              <Text style={s.tipsBtnTxt}>See All 200 Tips →</Text>
+            </Pressable>
+
+            {/* ── SHAREABLE CARD ── */}
+            <View style={s.shareCardSection}>
+              <View style={s.shareCardLabelRow}>
+                <Ionicons name="share-social-outline" size={13} color="rgba(255,255,255,0.3)" />
+                <Text style={s.shareCardLabel}>SHAREABLE CARD — WORKS OFFLINE</Text>
+              </View>
+              <View ref={shareRef} collapsable={false} style={s.shareCardOuter}>
+                <ShareCard photoUri={photoUri} scores={scores} />
               </View>
             </View>
 
             {/* ── SHARE BUTTONS ── */}
-            <View style={styles.shareRow}>
-              {/* WhatsApp */}
-              <Pressable
-                style={[styles.shareBtn, { backgroundColor: "#25D366", shadowColor: "#25D366" }]}
-                onPress={handleShare}
-                disabled={sharing}
-              >
-                {sharing ? <ActivityIndicator color="#fff" size="small" />
-                  : <><Ionicons name="logo-whatsapp" size={24} color="#fff" /><Text style={styles.shareBtnTxt}>WhatsApp</Text></>}
+            <View style={s.shareRow}>
+              <Pressable style={[s.shareBtn, { backgroundColor: "#25D366", shadowColor: "#25D366" }]} onPress={handleShare} disabled={sharing}>
+                {sharing ? <ActivityIndicator color="#fff" size="small" /> : (
+                  <><Ionicons name="logo-whatsapp" size={22} color="#fff" /><Text style={s.shareBtnTxt}>WhatsApp</Text></>
+                )}
               </Pressable>
-
-              {/* Instagram */}
-              <Pressable style={[styles.shareBtn, { padding: 0, overflow: "hidden", shadowColor: "#dc2743" }]} onPress={handleShare} disabled={sharing}>
-                <LinearGradient colors={["#f09433", "#e6683c", "#dc2743", "#cc2366", "#bc1888"]} style={styles.shareBtnGrad}>
-                  {sharing ? <ActivityIndicator color="#fff" size="small" />
-                    : <><Ionicons name="logo-instagram" size={24} color="#fff" /><Text style={styles.shareBtnTxt}>Instagram</Text></>}
+              <Pressable style={[s.shareBtn, { padding: 0, overflow: "hidden", shadowColor: "#dc2743" }]} onPress={handleShare} disabled={sharing}>
+                <LinearGradient colors={["#f09433","#e6683c","#dc2743","#cc2366","#bc1888"]} style={s.shareBtnGrad}>
+                  {sharing ? <ActivityIndicator color="#fff" size="small" /> : (
+                    <><Ionicons name="logo-instagram" size={22} color="#fff" /><Text style={s.shareBtnTxt}>Instagram</Text></>
+                  )}
                 </LinearGradient>
               </Pressable>
-
-              {/* Snapchat */}
-              <Pressable
-                style={[styles.shareBtn, { backgroundColor: "#FFFC00", shadowColor: "#FFFC00" }]}
-                onPress={handleShare}
-                disabled={sharing}
-              >
-                {sharing ? <ActivityIndicator color="#000" size="small" />
-                  : <><FontAwesome name="snapchat-ghost" size={22} color="#000" /><Text style={[styles.shareBtnTxt, { color: "#000" }]}>Snapchat</Text></>}
-              </Pressable>
-            </View>
-
-            {/* ── TIP CARD ── */}
-            <View style={[styles.tipCard, { borderLeftColor: tip.color }]}>
-              <View style={styles.tipTop}>
-                <View style={[styles.tipIconBox, { backgroundColor: tip.color + "20" }]}>
-                  <Text style={{ fontSize: 26 }}>{tip.icon}</Text>
-                </View>
-                <View style={{ flex: 1, gap: 5 }}>
-                  <View style={[styles.tipBadge, { backgroundColor: tip.color }]}>
-                    <Text style={styles.tipBadgeTxt}>{tip.impact}</Text>
-                  </View>
-                  <Text style={styles.tipTitle}>{tip.title}</Text>
-                </View>
-              </View>
-              <Text style={styles.tipDesc}>{tip.desc}</Text>
-              <Pressable onPress={async () => { await playButtonSound(); navigation.navigate("LookmaxingTips"); }}>
-                <Text style={[styles.tipSeeAll, { color: tip.color }]}>See all 200 tips →</Text>
+              <Pressable style={[s.shareBtn, { backgroundColor: "#FFFC00", shadowColor: "#FFFC00" }]} onPress={handleShare} disabled={sharing}>
+                {sharing ? <ActivityIndicator color="#000" size="small" /> : (
+                  <><FontAwesome name="snapchat-ghost" size={20} color="#000" /><Text style={[s.shareBtnTxt, { color: "#000" }]}>Snap</Text></>
+                )}
               </Pressable>
             </View>
 
             {/* ── TRY ANOTHER ── */}
-            <Pressable style={styles.tryWrap} onPress={async () => { await playButtonSound(); handleReset(); }}>
-              <LinearGradient colors={["#FF8C42", "#F2226B"]} style={styles.tryGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+            <Pressable style={s.tryBtn} onPress={async () => { await playButtonSound(); handleReset(); }}>
+              <LinearGradient colors={[PUR, "#5B0EBF"]} style={s.tryBtnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <Ionicons name="camera" size={20} color="#fff" />
-                <Text style={styles.tryTxt}>Try Another Photo</Text>
+                <Text style={s.tryBtnTxt}>Try Another Photo</Text>
               </LinearGradient>
             </Pressable>
 
-            <Pressable style={styles.uploadLink} onPress={async () => { await playButtonSound(); handleUploadPhoto(); }}>
-              <Ionicons name="image-outline" size={15} color="rgba(0,0,0,0.35)" />
-              <Text style={styles.uploadLinkTxt}>Upload from gallery instead</Text>
+            <Pressable style={s.uploadLink} onPress={async () => { await playButtonSound(); handleUploadPhoto(); }}>
+              <Ionicons name="image-outline" size={14} color="rgba(255,255,255,0.25)" />
+              <Text style={s.uploadLinkTxt}>Upload from gallery instead</Text>
             </Pressable>
 
           </Animated.View>
         )}
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
+/* ═══════════════ STYLES ═══════════════ */
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: BG },
+  topGlow: {
+    position: "absolute", top: 0, left: 0, right: 0, height: 220, zIndex: 0,
+  },
 
   /* Header */
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 16, paddingBottom: 6,
+    paddingHorizontal: 16, paddingBottom: 6, zIndex: 10,
   },
   backBtn: {
-    width: 44, height: 44, borderRadius: 15,
-    backgroundColor: "rgba(255,255,255,0.65)",
-    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.9)",
+    width: 42, height: 42, borderRadius: 13,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderWidth: 1, borderColor: BORD,
     justifyContent: "center", alignItems: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
   },
-  headerTitle: { fontSize: 26, fontFamily: "LilitaOne-Regular", color: CARD_PINK, letterSpacing: 0.4 },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: "#fff", letterSpacing: 0.5 },
 
-  scroll: { flexGrow: 1, paddingHorizontal: 16, paddingTop: 6, alignItems: "center" },
+  scroll: { flexGrow: 1, paddingHorizontal: 16, paddingTop: 8, alignItems: "center" },
 
-  /* Upload */
-  uploadWrap: { width: "100%", alignItems: "center", gap: 18, paddingTop: 8 },
-  heroBox: {
-    width: 100, height: 100, borderRadius: 32,
-    justifyContent: "center", alignItems: "center",
-    shadowColor: "#FF4500", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 12,
+  /* ── Upload ── */
+  uploadWrap: { width: "100%", alignItems: "center", gap: 20, paddingTop: 10 },
+
+  heroIconWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
+  heroIconBg: {
+    width: 104, height: 104, borderRadius: 32,
+    justifyContent: "center", alignItems: "center", zIndex: 2,
+    shadowColor: PUR, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.6, shadowRadius: 20, elevation: 14,
   },
-  heroTitle: {
-    fontSize: 30, fontFamily: "LilitaOne-Regular", color: "#fff", textAlign: "center",
-    textShadowColor: "rgba(0,0,0,0.15)", textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 4,
+  heroIconGlow: {
+    position: "absolute", width: 130, height: 130, borderRadius: 65,
+    backgroundColor: PUR, opacity: 0.15, zIndex: 1,
   },
-  heroSub: { fontSize: 15, color: "rgba(0,0,0,0.5)", textAlign: "center", lineHeight: 22, fontWeight: "600", maxWidth: 300 },
 
-  viewfinder: {
-    width: CARD_W, height: CARD_W * 0.72, borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.35)",
-    borderWidth: 1.5, borderColor: "rgba(248,107,109,0.25)",
+  uploadTitle: { fontSize: 32, fontWeight: "900", color: "#fff", textAlign: "center", letterSpacing: 0.3 },
+  uploadSub: { fontSize: 15, color: "rgba(255,255,255,0.45)", textAlign: "center", lineHeight: 22, fontWeight: "500", maxWidth: 300 },
+
+  frameBox: {
+    width: CW, height: CW * 0.68,
+    borderRadius: 22, backgroundColor: "rgba(255,255,255,0.03)",
+    borderWidth: 1.5, borderColor: "rgba(123,47,190,0.3)",
     borderStyle: "dashed",
     justifyContent: "center", alignItems: "center", gap: 10, position: "relative",
   },
-  corner: { position: "absolute", width: 22, height: 22, borderColor: CARD_PINK },
-  cornerTL: { top: 12, left: 12, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 6 },
-  cornerTR: { top: 12, right: 12, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 6 },
-  cornerBL: { bottom: 12, left: 12, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 6 },
-  cornerBR: { bottom: 12, right: 12, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 6 },
-  viewfinderLabel: { color: "rgba(248,107,109,0.5)", fontWeight: "700", fontSize: 13 },
+  corner: { position: "absolute", width: 22, height: 22 },
+  cTL: { top: 12, left: 12,  borderTopWidth: 3, borderLeftWidth:  3, borderColor: PUR, borderTopLeftRadius:     6 },
+  cTR: { top: 12, right: 12, borderTopWidth: 3, borderRightWidth: 3, borderColor: PUR, borderTopRightRadius:    6 },
+  cBL: { bottom: 12, left: 12,  borderBottomWidth: 3, borderLeftWidth:  3, borderColor: PUR, borderBottomLeftRadius:  6 },
+  cBR: { bottom: 12, right: 12, borderBottomWidth: 3, borderRightWidth: 3, borderColor: PUR, borderBottomRightRadius: 6 },
+  frameTxt: { color: "rgba(123,47,190,0.5)", fontWeight: "700", fontSize: 13 },
 
-  pillRow: { flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "center" },
-  pill: {
-    backgroundColor: "rgba(255,255,255,0.65)", borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.95)",
+  statsRow: { flexDirection: "row", gap: 12 },
+  statBox: {
+    flex: 1, backgroundColor: CARD, borderRadius: 14, borderWidth: 1, borderColor: BORD,
+    alignItems: "center", paddingVertical: 14,
   },
-  pillTxt: { color: "#444", fontSize: 13, fontWeight: "700" },
+  statVal: { fontSize: 22, fontWeight: "900", color: "#fff" },
+  statLbl: { fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: "600", marginTop: 2 },
 
-  primaryBtnWrap: {
-    width: "100%", maxWidth: 340, borderRadius: 22, overflow: "hidden",
-    shadowColor: SHADOW_PINK, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 14, elevation: 8,
+  primaryBtn: {
+    width: "100%", borderRadius: 18, overflow: "hidden",
+    shadowColor: PUR, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.55, shadowRadius: 14, elevation: 10,
   },
-  primaryBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 19 },
-  primaryBtnTxt: { color: "#fff", fontSize: 20, fontWeight: "800" },
+  primaryBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 18 },
+  primaryBtnTxt: { color: "#fff", fontSize: 19, fontWeight: "800" },
 
   secondaryBtn: {
-    width: "100%", maxWidth: 340, borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.65)",
-    borderWidth: 2, borderColor: CARD_PINK + "55",
-    overflow: "hidden",
+    width: "100%", borderRadius: 18, borderWidth: 1.5, borderColor: GREEN + "55",
+    backgroundColor: GREEN + "0F",
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, paddingVertical: 15,
   },
-  secondaryBtnInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, paddingVertical: 16 },
-  secondaryBtnTxt: { color: CARD_PINK, fontSize: 18, fontWeight: "800" },
+  secondaryBtnTxt: { fontSize: 17, fontWeight: "800" },
 
-  /* Loading */
-  loadingWrap: { width: "100%", alignItems: "center", gap: 24, paddingTop: 8 },
-  loadPhotoFrame: {
-    width: 180, height: 180, borderRadius: 30, overflow: "hidden",
-    shadowColor: SHADOW_PINK, shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.45, shadowRadius: 16, elevation: 12,
+  /* ── Loading ── */
+  loadWrap: { width: "100%", alignItems: "center", gap: 24, paddingTop: 10 },
+  loadPhotoRing: {
+    width: 180, height: 180, borderRadius: 90, overflow: "hidden",
+    borderWidth: 3, borderColor: PUR + "80",
+    shadowColor: PUR, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.8, shadowRadius: 20, elevation: 14,
   },
   loadPhoto: { width: "100%", height: "100%" },
-  scanOverlay: { position: "absolute", bottom: 14, alignSelf: "center" },
-  loadCard: {
-    width: "100%", backgroundColor: "rgba(255,255,255,0.75)",
-    borderRadius: 24, padding: 22, gap: 12,
-    borderWidth: 1, borderColor: "rgba(255,255,255,0.9)",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 4,
+  loadPhotoOverlay: {
+    position: "absolute", bottom: 0, left: 0, right: 0, height: 70,
+    justifyContent: "flex-end", alignItems: "center", paddingBottom: 12,
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
-  loadCardTitle: { fontSize: 18, fontWeight: "800", color: "#1a1a1a", textAlign: "center" },
-  loadCardDivider: { height: 1, backgroundColor: "rgba(0,0,0,0.06)", marginBottom: 4 },
+  loadCard: {
+    width: "100%", backgroundColor: CARD2, borderRadius: 22, padding: 22, gap: 12,
+    borderWidth: 1, borderColor: BORD,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
+  },
+  loadCardTitle: { fontSize: 17, fontWeight: "800", color: "#fff", textAlign: "center" },
+  loadCardDivider: { height: 1, backgroundColor: BORD, marginBottom: 2 },
   stageRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  stageDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "rgba(0,0,0,0.12)" },
-  stageTxt: { fontSize: 14, color: "rgba(0,0,0,0.38)", fontWeight: "600", flex: 1 },
+  stageDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.15)" },
+  stageTxt: { fontSize: 14, color: "rgba(255,255,255,0.35)", fontWeight: "600", flex: 1 },
 
-  /* Result */
+  /* ── Result ── */
   resultWrap: { width: "100%", alignItems: "center", gap: 14, paddingTop: 4 },
 
-  /* Score hero */
-  scoreHero: {
-    width: "100%", borderRadius: 28, overflow: "hidden",
-    backgroundColor: "#1a1a2e",
-    shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.55, shadowRadius: 24, elevation: 18,
-    borderWidth: 1.5, borderColor: "rgba(255,255,255,0.08)",
+  /* Hero */
+  heroSection: { width: "100%", alignItems: "center", gap: 12, paddingVertical: 10 },
+  photoRingOuter: { position: "relative", width: 140, height: 140, justifyContent: "center", alignItems: "center" },
+  photoRingInner: {
+    width: 130, height: 130, borderRadius: 65, borderWidth: 3, overflow: "hidden", zIndex: 2,
   },
-  heroPhoto: { width: "100%", height: 290, resizeMode: "cover" },
-  heroPhotoGrad: { position: "absolute", bottom: 0, left: 0, right: 0, height: 190 },
+  heroPhoto: { width: "100%", height: "100%", resizeMode: "cover" },
+  photoGlowRing: {
+    position: "absolute", width: 150, height: 150, borderRadius: 75,
+    borderWidth: 1, zIndex: 1,
+    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 20, elevation: 16,
+  },
+  heroScoreRow: { flexDirection: "row", alignItems: "flex-end", gap: 4 },
+  heroScoreNum: { fontSize: 72, fontWeight: "900", color: "#fff", lineHeight: 76 },
+  heroScoreLabel: { color: "rgba(255,255,255,0.35)", fontSize: 20, fontWeight: "700", marginBottom: 10 },
+  tierPill: {
+    flexDirection: "row", alignItems: "center", gap: 7,
+    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5,
+  },
+  tierDot: { width: 8, height: 8, borderRadius: 4 },
+  tierLabel: { fontSize: 14, fontWeight: "800", letterSpacing: 0.3 },
 
-  scoreRingOuter: {
-    position: "absolute", top: 14, right: 14,
-    width: 88, height: 88, borderRadius: 44,
-    borderWidth: 2,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center", alignItems: "center",
-    shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 14, elevation: 12,
-  },
-  scoreRingInner: {
-    width: 72, height: 72, borderRadius: 36, borderWidth: 3,
-    justifyContent: "center", alignItems: "center", flexDirection: "row",
-  },
-  scoreNum: { fontSize: 34, fontWeight: "900", lineHeight: 38 },
-  scoreSlash: { color: "rgba(255,255,255,0.5)", fontSize: 14, fontWeight: "700", marginBottom: 4, alignSelf: "flex-end" },
+  /* Section headers */
+  sectionHeader: { width: "100%", gap: 2, marginTop: 4 },
+  sectionTitle: { color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: "900", letterSpacing: 1.8 },
+  sectionSub: { color: "rgba(255,255,255,0.25)", fontSize: 11, fontWeight: "500" },
 
-  heroVerdictWrap: {
-    position: "absolute", bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 18, paddingBottom: 20, gap: 7,
-  },
-  verdictBadge: { alignSelf: "flex-start", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
-  verdictBadgeTxt: { color: "#000", fontWeight: "900", fontSize: 14 },
-  starsRow: { flexDirection: "row", gap: 3 },
-  verdictSub: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "600", lineHeight: 18 },
+  /* Metric grid */
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, width: "100%" },
 
-  /* Breakdown card */
-  breakdownCard: { width: "100%", borderRadius: 26, padding: 22, paddingTop: 20, paddingBottom: 26,
-    shadowColor: "#E8115A", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 12 },
-  bdHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  bdTitle: { color: "rgba(255,255,255,0.95)", fontSize: 16, fontWeight: "900", letterSpacing: 0.5 },
-  bdOverallBadge: {
-    flexDirection: "row", alignItems: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 10,
-    borderWidth: 1.5, paddingHorizontal: 10, paddingVertical: 4,
-  },
-  bdOverallNum: { fontSize: 22, fontWeight: "900", lineHeight: 26 },
-  bdOverallSlash: { color: "rgba(255,255,255,0.45)", fontSize: 13, fontWeight: "700", marginBottom: 1 },
-  bdDivider: { height: 1, backgroundColor: "rgba(255,255,255,0.15)", marginBottom: 16 },
-  bdList: { gap: 14 },
+  /* Analysis */
+  analysisList: { width: "100%", gap: 8 },
 
-  /* Share card section */
+  /* Recos */
+  recoList: { width: "100%", gap: 10 },
+  tipsBtn: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: PUR + "22",
+    borderWidth: 1, borderColor: PUR + "44",
+  },
+  tipsBtnTxt: { color: PUR, fontSize: 13, fontWeight: "800" },
+
+  /* Share card */
   shareCardSection: { width: "100%", gap: 10 },
-  shareCardLabelRow: {
-    flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center",
-  },
-  shareCardLabel: { color: "rgba(0,0,0,0.35)", fontSize: 10, fontWeight: "800", letterSpacing: 1.2 },
+  shareCardLabelRow: { flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center" },
+  shareCardLabel: { color: "rgba(255,255,255,0.25)", fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
   shareCardOuter: {
-    width: "100%", borderRadius: 24, overflow: "hidden",
-    shadowColor: "#E8115A", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 12,
+    width: "100%", borderRadius: 20, overflow: "hidden",
+    shadowColor: PUR, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 12,
+    borderWidth: 1, borderColor: "rgba(123,47,190,0.3)",
   },
 
   /* Share buttons */
@@ -763,40 +820,24 @@ const styles = StyleSheet.create({
   shareBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 6, paddingVertical: 14, borderRadius: 16,
-    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.45, shadowRadius: 8, elevation: 7,
   },
   shareBtnGrad: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14 },
-  shareBtnTxt: { color: "#fff", fontSize: 13, fontWeight: "800" },
-
-  /* Tip card */
-  tipCard: {
-    width: "100%", backgroundColor: "rgba(255,255,255,0.75)",
-    borderRadius: 22, padding: 16, borderLeftWidth: 5, gap: 10,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
-    borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderTopColor: "rgba(255,255,255,0.95)",
-    borderRightColor: "rgba(255,255,255,0.95)", borderBottomColor: "rgba(255,255,255,0.95)",
-  },
-  tipTop: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
-  tipIconBox: { width: 50, height: 50, borderRadius: 15, justifyContent: "center", alignItems: "center" },
-  tipBadge: { alignSelf: "flex-start", paddingHorizontal: 9, paddingVertical: 3, borderRadius: 8 },
-  tipBadgeTxt: { color: "#fff", fontSize: 10, fontWeight: "900", letterSpacing: 0.3 },
-  tipTitle: { color: "#1a1a1a", fontSize: 14, fontWeight: "800", lineHeight: 20 },
-  tipDesc: { color: "rgba(0,0,0,0.5)", fontSize: 13, lineHeight: 20 },
-  tipSeeAll: { alignSelf: "flex-end", fontSize: 13, fontWeight: "800" },
+  shareBtnTxt: { color: "#fff", fontSize: 12, fontWeight: "800" },
 
   /* Try another */
-  tryWrap: {
-    width: "100%", borderRadius: 22, overflow: "hidden",
-    shadowColor: SHADOW_PINK, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 14, elevation: 8,
+  tryBtn: {
+    width: "100%", borderRadius: 18, overflow: "hidden",
+    shadowColor: PUR, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 14, elevation: 10,
   },
-  tryGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 19 },
-  tryTxt: { color: "#fff", fontSize: 19, fontWeight: "800" },
+  tryBtnGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 18 },
+  tryBtnTxt: { color: "#fff", fontSize: 18, fontWeight: "800" },
 
   uploadLink: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 8 },
-  uploadLinkTxt: { color: "rgba(0,0,0,0.38)", fontSize: 13, fontWeight: "600" },
+  uploadLinkTxt: { color: "rgba(255,255,255,0.28)", fontSize: 13, fontWeight: "600" },
 
   /* Webcam */
-  camControls: { flexDirection: "row", justifyContent: "space-between", padding: 24, paddingBottom: 44, backgroundColor: "#000" },
+  camRow: { flexDirection: "row", justifyContent: "space-between", padding: 24, paddingBottom: 44, backgroundColor: "#000" },
   camBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 24, borderRadius: 30, gap: 8 },
   camBtnTxt: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });
