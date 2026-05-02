@@ -70,7 +70,7 @@ const RECOS = [
   { icon: "🌞", title: "SPF every morning",        desc: "Prevents UV-induced aging — the most impactful anti-aging move.",   color: "#FFB74D" },
 ];
 
-const PAGE_LABELS = ["Ratings", "Look Score", "Tips"];
+const PAGE_LABELS = ["Ratings", "Look Score", "Tips", "Analysis"];
 
 const rnd = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
@@ -150,39 +150,46 @@ const mc = StyleSheet.create({
 });
 
 /* ═══════════ ANALYSIS ROW ═══════════ */
-function AnalysisRow({ label, value, index }: { label: string; value: string; index: number }) {
-  const icons: Record<string, string> = {
-    "Canthal Tilt": "eye-outline", "Eye Shape": "eye", "Eye Type": "eye-sharp",
-    "Face Shape": "person-outline", "Jaw Width": "body-outline", "Nose Shape": "water-outline",
-  };
+function AnalysisRow({ label, value, icon, desc, index }: {
+  label: string; value: string; icon: string; desc: string; index: number;
+}) {
   const accents = [GRAD1, GRAD2, CORAL, GRAD3, "#E57373", "#FFB74D"];
   const accent  = accents[index % accents.length];
   return (
-    <View style={ar.row}>
-      <LinearGradient colors={[accent, accent + "BB"]} style={ar.iconBox} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-        <Ionicons name={(icons[label] ?? "sparkles-outline") as any} size={17} color="#fff" />
-      </LinearGradient>
-      <View style={{ flex: 1 }}>
-        <Text style={ar.label}>{label}</Text>
-      </View>
-      <View style={[ar.valuePill, { backgroundColor: accent + "15", borderColor: accent + "55" }]}>
+    <View style={ar.card}>
+      {/* Left accent bar */}
+      <LinearGradient colors={[accent, accent + "88"]} style={ar.accentBar} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} />
+      <View style={{ flex: 1, gap: 2 }}>
+        {/* Label row */}
+        <View style={ar.topRow}>
+          <LinearGradient colors={[accent, accent + "CC"]} style={ar.iconBox} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <Ionicons name={icon as any} size={15} color="#fff" />
+          </LinearGradient>
+          <Text style={ar.label}>{label}</Text>
+        </View>
+        {/* Value — big and readable */}
         <Text style={[ar.value, { color: accent }]}>{value}</Text>
+        {/* Description */}
+        <Text style={ar.desc}>{desc}</Text>
       </View>
     </View>
   );
 }
 const ar = StyleSheet.create({
-  row: {
-    flexDirection: "row", alignItems: "center", gap: 12,
-    backgroundColor: CARD_BG2, borderRadius: 18,
-    paddingVertical: 12, paddingHorizontal: 14,
+  card: {
+    flexDirection: "row", gap: 12,
+    backgroundColor: "#FFFFFF", borderRadius: 18,
+    paddingVertical: 14, paddingHorizontal: 14,
     borderWidth: 1.5, borderColor: BORD,
-    shadowColor: "#A0B0D8", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 3,
+    shadowColor: "#A0B0D8", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 4,
+    overflow: "hidden",
   },
-  iconBox:   { width: 38, height: 38, borderRadius: 12, justifyContent: "center", alignItems: "center", flexShrink: 0 },
-  label:     { color: TXT_PRI, fontSize: 14, fontWeight: "700" },
-  valuePill: { borderRadius: 10, borderWidth: 1.5, paddingHorizontal: 11, paddingVertical: 5 },
-  value:     { fontSize: 11, fontWeight: "900", letterSpacing: 0.3 },
+  accentBar: { width: 4, borderRadius: 3, alignSelf: "stretch", flexShrink: 0 },
+  topRow:    { flexDirection: "row", alignItems: "center", gap: 8 },
+  iconBox:   { width: 28, height: 28, borderRadius: 8, justifyContent: "center", alignItems: "center", flexShrink: 0 },
+  label:     { color: TXT_SEC, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, textTransform: "uppercase" },
+  value:     { fontSize: 20, fontWeight: "900", letterSpacing: 0.2, marginLeft: 36 },
+  desc:      { color: TXT_SEC, fontSize: 12, lineHeight: 17, fontWeight: "500", marginLeft: 36 },
 });
 
 /* ═══════════ RECOMMENDATION CARD ═══════════ */
@@ -365,7 +372,7 @@ export default function LookmaxingScreen({ navigation }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const pagerRef  = useRef<ScrollView>(null);
 
-  const TOTAL_PAGES = 3;
+  const TOTAL_PAGES = 4;
 
   useEffect(() => {
     if (phase !== "loading") return;
@@ -703,6 +710,47 @@ export default function LookmaxingScreen({ navigation }: Props) {
               <Pressable style={s.galleryBtn} onPress={async () => { await playButtonSound(); handleUploadPhoto(); }}>
                 <Ionicons name="image-outline" size={18} color={TXT_SEC} />
                 <Text style={s.galleryBtnTxt}>Upload from gallery instead</Text>
+              </Pressable>
+
+              <Pressable style={s.nextPageBtn} onPress={() => goToPage(3)}>
+                <Text style={s.nextPageTxt}>See Your Analysis</Text>
+                <Ionicons name="chevron-forward" size={15} color={CORAL} />
+              </Pressable>
+            </ScrollView>
+
+            {/* ───── PAGE 4: Your Analysis ───── */}
+            <ScrollView style={{ width: PAGE_W }} contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
+              <PageHeader title="Your Analysis" sub="Facial structure breakdown" accent={GRAD1} icon="scan-outline" />
+
+              <View style={s.analysisList}>
+                {[
+                  { label: "Canthal Tilt", value: faceData.canthalTilt, icon: "eye-outline",    desc: "The angle of your outer eye corners — affects perceived sharpness." },
+                  { label: "Eye Shape",    value: faceData.eyeShape,    icon: "eye",             desc: "Overall shape determines how large and attractive your eyes appear." },
+                  { label: "Eye Type",     value: faceData.eyeType,     icon: "eye-sharp",       desc: "Hunter vs prey eyes — one of the most noticed facial features." },
+                  { label: "Face Shape",   value: faceData.faceShape,   icon: "person-outline",  desc: "Your facial outline affects which hairstyles and styles suit you." },
+                  { label: "Jaw Width",    value: faceData.jawWidth,    icon: "body-outline",    desc: "A wider jaw signals high testosterone and strong bone structure." },
+                  { label: "Nose Shape",   value: faceData.noseShape,   icon: "water-outline",   desc: "Nose shape contributes heavily to overall facial harmony ratio." },
+                ].map((row, i) => (
+                  <AnalysisRow key={row.label} label={row.label} value={row.value} icon={row.icon} desc={row.desc} index={i} />
+                ))}
+              </View>
+
+              {/* Insight callout */}
+              <View style={s.insightCard}>
+                <LinearGradient colors={[GRAD2 + "28", GRAD3 + "12"]} style={s.insightGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Ionicons name="information-circle" size={22} color={GRAD2} />
+                  <Text style={s.insightTxt}>
+                    These traits are determined by your bone structure and facial geometry — some can improve with targeted exercises.
+                  </Text>
+                </LinearGradient>
+              </View>
+
+              {/* Back to start */}
+              <Pressable style={s.tryBtn} onPress={async () => { await playButtonSound(); handleReset(); }}>
+                <LinearGradient colors={[GRAD1, GRAD2, GRAD3]} style={s.tryGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Ionicons name="camera" size={20} color="#fff" />
+                  <Text style={s.tryTxt}>Try Another Photo</Text>
+                </LinearGradient>
               </Pressable>
             </ScrollView>
           </ScrollView>
