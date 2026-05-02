@@ -135,7 +135,7 @@ function MetricCard({ label, score, delay = 0 }: { label: string; score: number;
 }
 const mc = StyleSheet.create({
   card: {
-    width: (CW - 12) / 2, backgroundColor: CARD_BG2, borderRadius: 20,
+    width: "48%", backgroundColor: CARD_BG2, borderRadius: 20,
     borderWidth: 1.5, borderColor: BORD,
     padding: 16, gap: 5,
     shadowColor: "#9BB0E8", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6,
@@ -776,7 +776,7 @@ const s = StyleSheet.create({
   secTitle: { color: CORAL, fontSize: 12, fontWeight: "900", letterSpacing: 2 },
   secSub: { color: TXT_SEC, fontSize: 11, fontWeight: "500" },
 
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, width: "100%" },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12, width: "100%" },
   analysisList: { width: "100%", gap: 8 },
   recoList: { width: "100%", gap: 10 },
 
