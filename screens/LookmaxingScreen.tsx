@@ -840,13 +840,13 @@ const s = StyleSheet.create({
 
   /* Pager */
   pagerOuter:  { flex: 1 },
-  pageContent: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 36, gap: 14, alignItems: "center" },
+  pageContent: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8, gap: 5, alignItems: "center" },
 
   /* Hero card */
   heroCard: {
     width: "100%", backgroundColor: CARD_BG2, borderRadius: 24,
     borderWidth: 1.5, borderColor: BORD,
-    alignItems: "center", paddingVertical: 24, paddingHorizontal: 20, gap: 10,
+    alignItems: "center", paddingVertical: 12, paddingHorizontal: 14, gap: 6,
     shadowColor: "#A0B0D8", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8,
   },
   photoOuter: { position: "relative", width: 130, height: 130, justifyContent: "center", alignItems: "center" },
@@ -866,11 +866,11 @@ const s = StyleSheet.create({
   },
   tierEmoji: { fontSize: 16 },
   tierTxt:   { fontSize: 15, fontWeight: "900" },
-  heroDivider:  { width: "70%", height: 1, backgroundColor: BORD, marginTop: 4 },
+  heroDivider:  { width: "52%", height: 1, backgroundColor: BORD, marginTop: 0 },
   swipeCue:     { color: TXT_SEC, fontSize: 11, fontWeight: "600", letterSpacing: 0.4 },
 
   /* Grid section label */
-  gridLabel:    { flexDirection: "row", alignItems: "center", gap: 10, width: "100%" },
+  gridLabel:    { flexDirection: "row", alignItems: "center", gap: 8, width: "100%" },
   gridLabelTxt: { color: TXT_SEC, fontSize: 10, fontWeight: "900", letterSpacing: 2 },
   gridLabelLine: { flex: 1, height: 1, backgroundColor: BORD },
 
@@ -878,15 +878,15 @@ const s = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 12, width: "100%" },
 
   /* Analysis */
-  analysisList: { width: "100%", gap: 9 },
+  analysisList: { width: "100%", gap: 4 },
 
   /* Insight card */
   insightCard:  { width: "100%", borderRadius: 16, overflow: "hidden", borderWidth: 1.5, borderColor: BORD },
-  insightGrad:  { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14 },
-  insightTxt:   { flex: 1, color: TXT_SEC, fontSize: 13, lineHeight: 19, fontWeight: "500" },
+  insightGrad:  { flexDirection: "row", alignItems: "flex-start", gap: 6, padding: 9 },
+  insightTxt:   { flex: 1, color: TXT_SEC, fontSize: 11, lineHeight: 15, fontWeight: "500" },
 
   /* Reco list */
-  recoList: { width: "100%", gap: 10 },
+  recoList: { width: "100%", gap: 5 },
 
   /* Tips btn */
   tipsBtn:     { width: "100%", borderRadius: 16, overflow: "hidden", borderWidth: 1.5, borderColor: "rgba(248,107,109,0.35)" },
@@ -894,7 +894,7 @@ const s = StyleSheet.create({
   tipsBtnTxt:  { color: CORAL, fontSize: 14, fontWeight: "800", flex: 1 },
 
   /* Share section */
-  shareSection:      { width: "100%", gap: 14 },
+  shareSection:      { width: "100%", gap: 5 },
   shareSectionLabel: { flexDirection: "row", alignItems: "center", gap: 10 },
   shareLine:         { flex: 1, height: 1, backgroundColor: BORD },
   shareSectionTxt:   { color: TXT_SEC, fontSize: 10, fontWeight: "800", letterSpacing: 2 },
@@ -902,15 +902,15 @@ const s = StyleSheet.create({
     width: "100%", borderRadius: 22, overflow: "hidden",
     shadowColor: "#5B3FA0", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 18, elevation: 12,
   },
-  shareRow:  { flexDirection: "row", gap: 8, width: "100%" },
+  shareRow:  { flexDirection: "row", gap: 4, width: "100%" },
 
   /* Try Another + Gallery */
   tryBtn:  { width: "100%", borderRadius: 20, overflow: "hidden", shadowColor: CORAL_SHD, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 14, elevation: 10 },
-  tryGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 17 },
+  tryGrad: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 10 },
   tryTxt:  { color: "#fff", fontSize: 18, fontWeight: "800" },
   galleryBtn: {
     flexDirection: "row", alignItems: "center", gap: 8, width: "100%",
-    justifyContent: "center", paddingVertical: 14, borderRadius: 18,
+    justifyContent: "center", paddingVertical: 9, borderRadius: 18,
     backgroundColor: CARD_BG, borderWidth: 1.5, borderColor: BORD,
   },
   galleryBtnTxt: { color: TXT_PRI, fontSize: 15, fontWeight: "700" },
@@ -918,13 +918,13 @@ const s = StyleSheet.create({
   /* Next page button */
   nextPageBtn: {
     flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-end",
-    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 14,
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
     backgroundColor: "rgba(248,107,109,0.1)", borderWidth: 1.5, borderColor: "rgba(248,107,109,0.3)",
   },
-  nextPageTxt: { color: CORAL, fontSize: 13, fontWeight: "800" },
+  nextPageTxt: { color: CORAL, fontSize: 12, fontWeight: "800" },
 
   /* Dot navigation */
-  dotsWrap:     { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 16, paddingTop: 8 },
+  dotsWrap:     { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingTop: 4 },
   dotItem:      { alignItems: "center", gap: 5 },
   dot:          { width: 8, height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.4)" },
   dotActive:    { width: 32, height: 8, borderRadius: 4 },
